@@ -6,18 +6,18 @@ import sys
 help_text= "\
 Usage: sm-viz.py your-statemachine.scxml\n\
 Possible switches:\n\t\
--h \t\t displays this very(!) helpful text. \n\t\
+--h \t\t displays this very(!) helpful text. \n\t\
 --ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to make your graph more readable. \n\t\
---reduce=n \t Exclude all Substatemachines below a n levels. Use this to make your graph more readable without sacrificing inormation. \n\t\
+--reduce=n \t Exclude all Substatemachines below n levels. Use this to make your graph more readable without sacrificing inormation. \n\t\
 --bw \t\t Will render the graph without colors (in black and white). \n\t\
 --format=fmt \t Will render the graph in the specified format. Available formats are: png (default), pdf \n\t\
 --savegv \t Will save the generated GraphViz code. \n\t\
---gvname=name \t Will save the generated Graphviz code under the given name. Use with -savegv\
+--gvname=name \t Will save the generated Graphviz code under the given name. Default name is the same as your input (but with extension .gv) Use with -savegv\
 \n"
 
 ############################ variables ####################################
 
-node = 0
+root_node = 0
 
 # specifies the name of the input file
 input_name = ""
@@ -87,7 +87,8 @@ if not gvname.endswith(".gv"):
 ############################### methods #####################################
 
 def read_xml():
-	pass
+	tree = ET.parse(input_name)
+	root_node = tree.getroot()
 
 
 exit()
