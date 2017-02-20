@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="arm.HasItemInGripper">
+    <datamodel>
+        <data id="#_STATE_PREFIX" expr="'de.unibi.citec.clf.bonsai.skills.'"/>
+        <data id="#_ENABLE_SKILL_WARNINGS" expr="'true'"/>
+        <data id="#_SLOTS">
+            <slots>
+                <slot key="StringSlot" state="dialog.SaySlot#WillNowHandOver" xpath="/order"/> 
+                <slot key="StringSlot" state="dialog.SaySlot#couldNotBring" xpath="/order"/> 
+                <slot key="StringSlot" state="dialog.SaySlot#sorryName" xpath="/personname"/>
+            </slots>
+        </data>
+    </datamodel>
+    
+    <!-- 
+    direkte verzweigung: 
+        item in gripper
+        
+        !item in gripper:
+            
+
+
+    -->
+    
+    <state id="arm.HasItemInGripper">
+        <transition event="HasItemInGripper.success.hasItem" target="dialog.SaySlot#WillNowHandOver"/> 
+        <transition event="HasItemInGripper.success.hasNoItem" target="noItem"/> 
+        <transition event="HasItemInGripper.fatal" target="noItem"/> 
+    </state>
+    
+    <!-- item in gripper pfad -->
+    
+    <state id="dialog.SaySlot#WillNowHandOver">
+        <datamodel>
+            <data id="#_TEXT" expr="'Ok. I will now hand over the $S'" />
+            <data id="#_NONBLOCKING" expr="'false'" />
+        </datamodel>
+        <transition event="SaySlot.success" target="End"/> 
+        <transition event="SaySlot.fatal" target="Fatal"/> 
+    </state>
+    
+    <!-- kein item in gripper pfad -->
+    
+    <state id="noItem" initial="dialog.SaySlot#sorryName">
+    
+        <state id="dialog.SaySlot#sorryName">
+            <datamodel>
+                <data id="#_TEXT" expr="'sorry $S'" />
+                <data id="#_NONBLOCKING" expr="'false'" />
+            </datamodel>
+            <transition event="SaySlot.success" target="dialog.SaySlot#couldNotBring"/> 
+            <transition event="SaySlot.fatal" target="dialog.SaySlot#couldNotBring"/> 
+        </state>
+    
+        <state id="dialog.SaySlot#couldNotBring">
+            <datamodel>
+                <data id="#_TEXT" expr="'i was not able to get you your $S'" />
+                <data id="#_NONBLOCKING" expr="'false'" />
+            </datamodel>
+            <transition event="SaySlot.success" target="End"/> 
+            <transition event="SaySlot.fatal" target="End"/> 
+        </state>
+    
+    </state>
+    
+    <state id="End">
+        <send event="success"/>
+    </state>
+    
+    
+    <state id="Fatal">
+        <send event="fatal"/>
+    </state>
+   
+    
+    
+</scxml>
