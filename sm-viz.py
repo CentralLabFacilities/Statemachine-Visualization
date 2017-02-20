@@ -10,7 +10,7 @@ Possible switches:\n\t\
 --ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to make your graph more readable. \n\t\
 --reduce=n \t Exclude all Substatemachines below a n levels. Use this to make your graph more readable without sacrificing inormation. \n\t\
 --bw \t\t Will render the graph without colors (in black and white). \n\t\
---format=fmt \t\t Will render the graph in the specified format. Available formats are: png (default), pdf\
+--format=fmt \t Will render the graph in the specified format. Available formats are: png (default), pdf\
 \n"
 
 ############################# switches ####################################
