@@ -2,6 +2,10 @@ import xml.etree.ElementTree as ET
 from graphviz import Digraph
 import sys
 
+# TODO's
+## make render engine changable  
+
+
 # help text. if you change things here the amount of tabs may be in need of adjustments.
 help_text= "\
 Usage: sm-viz.py your-statemachine.scxml\n\
@@ -16,8 +20,6 @@ Possible switches:\n\t\
 \n"
 
 ############################ variables ####################################
-
-root_node = 0
 
 # specifies the name of the input file
 input_name = ""
@@ -81,14 +83,33 @@ if not gvname == "" and not savegv:
 	exit()
 else:
 	gvname = input_name[:-4]
+
 if not gvname.endswith(".gv"):
 	gvname = gvname + ".gv"
 
 ############################### methods #####################################
 
-def read_xml():
-	tree = ET.parse(input_name)
-	root_node = tree.getroot()
+# Reads a graph from a specified filename. Returns the Digraph of this File
+# Optional parameters:
+## level for sub-statemachine purposes
+## body for the style of the body of this graph
+def readGraph(filename, level=0, body=[]):
+	#prepare return graph
+	g = Digraph('g')
+	#
+	tree = ET.parse(filename)
+	root = tree.getroot()
+	initial_state = root_node.attrib['initial']
+	send_events = []
 
+	for child in root:
+		if child.tag.endswith("state"):
+			if "initial" in child.attrib:
+				print("generate mini-subgraph")
+	return g	
+
+####################### start the graph generation ###########################
+
+DG = Digraph('G')
 
 exit()
