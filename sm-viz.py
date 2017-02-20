@@ -86,7 +86,7 @@ if not gvname.endswith(".gv"):
 
 ############################### methods #####################################
 
-def read_xml:
+def read_xml():
 	pass
 
 
