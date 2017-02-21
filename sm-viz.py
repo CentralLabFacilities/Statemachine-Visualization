@@ -20,13 +20,14 @@ Usage: sm-viz.py your-statemachine.scxml\n\
 Possible switches:\n\t\
 --h \t\t Displays this very helpful text. \n\t\
 --ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to make your graph more readable. \n\t\
---reduce=n \t Exclude all Substatemachines below n levels. Use this to make your graph more readable without sacrificing inormation. \n\t\
+--reduce=n \t Exclude all Substatemachines below n levels. Use this to make your graph more readable without sacrificing inormation. WIP \n\t\
 --bw \t\t Will render the graph without colors (aka in black and white). \n\t\
---format=fmt \t Will render the graph in the specified format. Available formats are: png (default), pdf etc.\n\t\
---savegv \t Will save the generated GraphViz code. \n\t\
---gvname=name \t Will save the generated Graphviz code under the given name. Default name is the same as your input (but with extension .gv) Use with -savegv \n\t\
+--eventclr=event:color \t Will use the specified color for the event. Uses a contains internally. Multiple values possible, eg: --eventclr=success:green,error:red \n\t\
+--format=fmt \t Will render the graph in the specified format. Available formats are: png (default), pdf etc. WIP\n\t\
+--savegv \t Will save the generated GraphViz code. WIP \n\t\
+--gvname=name \t Will save the generated Graphviz code under the given name. Default name is the same as your input (but with extension .gv) Use with -savegv WIP \n\t\
 --rengine=ngin \t Will use the specified engine (ngin) to render the graph \n\t\
---nocmpstates \t Similarly to ex and reduce this will suppress compound states (states in states). \
+--nocmpstates \t Similarly to ex and reduce this will suppress compound states (states in states). WIP \
 \n"
 """str: Helping text. If you change things here the amount of tabs (after the flags) may be in need of adjustments.
 """
@@ -39,15 +40,14 @@ ns = "{http://www.w3.org/2005/07/scxml}"
 """str: Namespace of the statemachine. Will be calculated again when reading the first xml file.
 """
 
+colordict = {"Timeout": "blue", "success": "green", "fatal": "red", "error": "red"}
+"""dict(str->str): Dictionary that contains the events
+"""
 
 ############################# switches ####################################
 
 subst_recs = float('inf')
 """float: Amount of recursive steps to which substate machines will be included. Usage as int, but only float supports infty.
-"""
-
-color = True
-"""bool: Controls whether to use auto colours or a black and white graph.
 """
 
 fmt = "png"
@@ -92,7 +92,14 @@ def handleArguments(args):
 		elif each.startswith("--reduce="):
 			subst_recs = each.split("=")[1]
 		elif each == "--bw":
-			color = False
+			for each in colordict:
+				colordict[each] = "black"
+		elif each.startswith("--eventclr="):
+			tmp = each.split("=")[1]
+			clrs = tmp.split(",")
+			for each in clrs:
+				tup = clrs.split(":")
+				colordict[tup[0]] = tup[1]
 		elif each.startswith("--format="):
 			tmp = each.split("=")[1]	
 			if tmp in graphviz.FORMATS:
@@ -120,88 +127,9 @@ def handleArguments(args):
 			print("Parameter \"" + each + "\" not recognized. Will now exit.\n")
 			exit()
 
-def readGraph(filename, level=0, body=[], label=""):
-	"""Reads a graph from a specified filename.
-
-		Args:
-			filename (str): The name of the file in which the graph 
-			level (int, optional): Used for sub-statemachine purposes, this corresponds to the level in which the graph lies. If greater
-				than subst_recs given at the start of the programm, this graph will be reduced to just one state (but will still have all edges).
-			body (list[str], optional): Used to set the style of the body of this graph. Contains of a list of str.
-			label (str, optional): Used to set the label of the graph.
-
-		Returns:
-			tuple(Digraph, list[edge]): A tuple containing:
-				1. The Digraph of the specified rootnode.
-				2. A list of edges. The edges themself are tuples containing two str: The first beeing the start-node, the second beeing 
-					either the end-node or a special string containing the event this state sends. These 'special' edges need to be
-					accounted for.
-	"""
-	# prepare return graph
-	g = Digraph('g', engine=rengine)
-
-	# prepare xml tree
-	tree = ET.parse(filename)
-	root = tree.getroot()
-	initial_state = root_node.attrib['initial']
-	send_events = []
-	edges = []
-
-	for child in root:
-		if child.tag.endswith("state"):
-			if "initial" in child.attrib:
-				print("generate mini-subgraph")
-			elif "src" in child.attrib:
-				print("generate true subgraph")
-			elif "parallel" in child.attrib:
-				print("draw parallel subgraph")
-			else:
-				pass
-	if label:
-		g.body.append('label = \"' + label + '\"')
-	return "TODO: implementation"
-
-def build_mini_sg(root, label=""):
-	"""Builds a subgraph from a specified root node.
-
-		Args:
-			root (Digraph.node): The root node from which this subgraph extends.
-			label (str): Used to label the subgraph.
-
-		Returns:
-			tuple(Digraph, list[edge]): A tuple containing:
-				1. The Digraph of the specified rootnode.
-				2. A list of edges. The edges themself are tuples containing two str: 
-					The first beeing the start-node, the second beeing either the end-node or a special string 
-					containing the event this state sends. These 'special' edges need to be accounted for.
-	"""
-	pass
-
-def detSubBody(body):
-	"""Determins the suitable body for the subgraph of a graph with a given body.
-
-	Following order is in use: No body for the main graph.
-
-		Args:
-			body (list[str]): The body of the graph you want to determine the body of the subgraphs of. Contains of a list of str.
-
-		Returns:
-			list[str]: The body of the subgraphs of the graph with the passed body.
-	"""
-	return body
-
-
-######################## startup and flag stuff ##############################
-
-def main():
-	"""Main function of this programm. Will generate a graph based on the given arguments.
-	"""
-
-	# initialize the switches and stuff
-	handleArguments(sys.argv)
-
-############################# Sanity checks ##################################
-
+def sanityChecks():
+"""Will 
+"""
 	# no input file
 	if input_name == "":
 		print("Input file is not an .xml or not specified! Will now exit.\n")
@@ -223,11 +151,126 @@ def main():
 		print("The file \"" + input_name + "\" does not exist. Will now exit.\n")
 		exit()
 
+def readGraph(filename, level=0, body=[], label=""):
+	"""Reads a graph from a specified filename.
+
+		Args:
+			filename (str): The name of the file in which the graph 
+			level (int, optional): Used for sub-statemachine purposes, this corresponds to the level in which the graph lies. If greater
+				than subst_recs given at the start of the programm, this graph will be reduced to just one state (but will still have all edges).
+			body (list[str], optional): Used to set the style of the body of this graph. Contains of a list of str.
+			label (str, optional): Used to set the label of the graph.
+
+		Returns:
+			tuple(Digraph, list[edge]): A tuple containing:
+				1. The Digraph of the specified rootnode.
+				2. A list of edges. The edges themself are tuples containing two str: The first beeing the start-node, the second beeing 
+				a special string containing the event this state sends. These 'special' edges need to be accounted for.
+	"""
+	# prepare return graph
+	g = Digraph(filename, engine=rengine)
+
+	# prepare xml tree
+	tree = ET.parse(filename)
+	root = tree.getroot()
+	initial_state = root_node.attrib['initial']
+	send_events = []
+	edges = []
+
+	for child in root:
+		if child.tag.endswith("state"):
+			# case: compound state
+			if "initial" in child.attrib:
+				print("generate mini-subgraph")
+			# case: substatemachine in seperate .xml
+			elif "src" in child.attrib:
+				print("generate true subgraph")
+			# case: parallel states
+			elif "parallel" in child.attrib:
+				print("draw parallel subgraph")
+			# case: regular state
+			else:
+				for each in child:
+					if each.tag[len(ns):] == "transition":
+						# case: regular state transition
+						if "target" in each.attrib:
+							g.edge(child.attrib['id'], each.attrib['target'], label=each.attrib['event'], color=detEdgeColor(each.attrib['event']))
+						# case: send event transition TODO: ugly
+						else:
+							for every in each:
+								if every.tag[len(ns):] == "send":
+									edges.append((child.attrib['id'], every.attrib['event'])
+					elif each.tag[len(ns):] == "send":
+						edges.append((child.attrib['id'], each.attrib['event'])
+
+	if label:
+		g.body.append('label = \"' + label + '\"')
+	if level == 0:
+		g.body.append("label=\"\nSM for " + filename + "\"")
+		g.body.append('fontsize=20')
+		g.node('Start', shape='Mdiamond')
+		g.edge('Start', initial_state)
+		g.node('End', shape='Msquare')
+		for each in edges:
+			g.edge(each[0], 'End', label=each[1], color=detEdgeColor(each[1]))
+	return (g, edges)
+
+def build_mini_sg(root, label=""):
+	"""Builds a subgraph from a specified root node.
+
+		Args:
+			root (Digraph.node): The root node from which this subgraph extends.
+			label (str): Used to label the subgraph.
+
+		Returns:
+			tuple(Digraph, list[edge]): A tuple containing:
+				1. The Digraph of the specified rootnode.
+				2. A list of edges. The edges themself are tuples containing two str: The first beeing the start-node, the second beeing 
+					a special string containing the event this state sends. These 'special' edges need to be accounted for.
+	"""
+	pass
+
+def detEdgeColor(event):
+	"""Determins the color of a edge, given a specific event.
+
+		Args:
+			event (str): The event which will determine the color of the edge.
+
+		Returns:
+			str: A string stating the color of the edge. EG: red, blue, green etc
+
+	"""
+	edgecolor = "black"
+	for each in colordict:
+		if event.__contains__(each):
+			edgecolor = colordict[event]
+			break
+	return edgecolor
+
+def detSubBody(body):
+	"""Determins the suitable body for the subgraph of a graph with a given body.
+
+	Following order is in use: No body for the main graph.
+
+		Args:
+			body (list[str]): The body of the graph you want to determine the body of the subgraphs of. Contains of a list of str.
+
+		Returns:
+			list[str]: The body of the subgraphs of the graph with the passed body.
+	"""
+	return body
+
+def main():
+	"""Main function of this programm. Will generate a graph based on the given arguments.
+	"""
+
+	# initialize the switches and stuff
+	handleArguments(sys.argv)
+
+	# check the sanity of the given arguments
+	sanityChecks()
+
 ####################### start the graph generation ###########################
-
-	ns = root.tag[:-5] # get the namespace of this document 
-
-	DG = Digraph('G', engine=rengine)
 
 	exit()
 
