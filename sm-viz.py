@@ -187,12 +187,12 @@ def readGraph(filename, level=0, body=[], label=""):
 				a special string containing the event this state sends. These 'special' edges need to be accounted for.
 	"""
 	# prepare return graph
-	g = Digraph(filename, engine=rengine)
+	g = Digraph(filename, engine=rengine, format=fmt)
 
 	# prepare xml tree
 	tree = ET.parse(filename)
 	root = tree.getroot()
-	initial_state = root_node.attrib['initial']
+	initial_state = root.attrib['initial']
 	send_events = []
 	edges = []
 
@@ -261,7 +261,7 @@ def detEdgeColor(event):
 	edgecolor = "black"
 	for each in colordict:
 		if event.__contains__(each):
-			edgecolor = colordict[event]
+			edgecolor = colordict[each]
 			break
 	return edgecolor
 
@@ -278,6 +278,15 @@ def detSubBody(body):
 	"""
 	return body
 
+def draw(graph):
+	"""Draws a given graph into according to the given configuration.
+
+		Args:
+			graph (Digraph): The graph that shall be rendered.
+	"""
+	graph.render(filename=gvname, cleanup=not savegv)
+	pass
+
 def main():
 	"""Main function of this programm. Will generate a graph based on the given arguments.
 	"""
@@ -288,7 +297,10 @@ def main():
 	# check the sanity of the given arguments
 	sanityChecks()
 
-####################### start the graph generation ###########################
+	# generate the main graph
+	(DG, edges) = readGraph(inputName)
+
+	draw(DG)
 
 	exit()
 
