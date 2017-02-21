@@ -76,7 +76,7 @@ for each in sys.argv:
 		if tmp in graphviz.FORMATS:
 			fmt = tmp
 		else:
-			print("Specified format not known!\n")
+			print("Specified format not known! Will now exit.\n")
 			exit()
 	elif each.endswith(".xml"):
 		input_name = each
@@ -89,11 +89,14 @@ for each in sys.argv:
 		if tmp in graphviz.ENGINES:
 			fmt = tmp
 		else:
-			print("Specified engine not known!\n")
+			print("Specified engine not known! Will now exit.\n")
 			exit()
 		rengine = each.split("=")[1]
 	elif each == "--nosubstates":
 		minisg = False
+	else:
+		print("Parameter \"" + each + "\" not recognized. Will now exit.\n")
+		exit()
 
 # Sanity checks
 if input_name == "":
