@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 from graphviz import Digraph
 import sys
+import os.path
 
 # TODO's
 ## readGraph and build_mini_sg need to return a tuple of the graph and a list of tuples which contain edges and node from which these edges derive
@@ -80,7 +81,9 @@ def readGraph(filename, level=0, body=[], label=""):
 		body (list[str], optional): Used to set the style of the body of this graph. Contains of a list of str.
 		label (str, optional): Used to set the label of the graph.
 	Returns:
-		Digraph: The Digraph of the specified file.
+		tuple(Digraph, list[edge]): A tuple containing:
+			1. The Digraph of the specified rootnode.
+			2. A list of edges. The edges themself are tuples containing two str: The first beeing the start-node, the second beeing either the end-node or a special string containing the event this state sends. These 'special' edges need to be accounted for.
 """
 	# prepare return graph
 	g = Digraph('g', engine=rengine)
@@ -100,11 +103,11 @@ def readGraph(filename, level=0, body=[], label=""):
 				print("generate true subgraph")
 			elif "parallel" in child.attrib:
 				print("draw parallel subgraph")
-			if "":
+			else:
 				pass
 	if label:
 		g.body.append('label = \"' + label + '\"')
-	return g
+	return "TODO: implementation"
 
 def build_mini_sg(root, label=""):
 """Builds a subgraph from a specified root node.
@@ -114,7 +117,9 @@ def build_mini_sg(root, label=""):
 		label (str): Used to label the subgraph.
 
 	Returns:
-		Digraph: The Digraph of the specified rootnode.
+		tuple(Digraph, list[edge]): A tuple containing:
+			1. The Digraph of the specified rootnode.
+			2. A list of edges. The edges themself are tuples containing two str: The first beeing the start-node, the second beeing either the end-node or a special string containing the event this state sends. These 'special' edges need to be accounted for.
 """
 	pass
 
@@ -129,7 +134,7 @@ Following order is in use: No body for the main graph.
 	Returns:
 		list[str]: The body of the subgraphs of the graph with the passed body.
 """
-	pass
+	return body
 
 
 ######################## startup and flag stuff ##############################
@@ -176,18 +181,28 @@ for each in sys.argv:
 		print("Parameter \"" + each + "\" not recognized. Will now exit.\n")
 		exit()
 
-# Sanity checks
+############################# Sanity checks ##################################
+
+# no input file
 if input_name == "":
-	print("No input file specified! Will now exit.")
+	print("Input file is not an .xml or not specified! Will now exit.\n")
 	exit()
+
+# gvname specified but not savegv
 if not gvname == "" and not savegv:
-	print("gvname specified but not savegv! Will now exit.")
+	print("gvname specified but not savegv! Will now exit.\n")
 	exit()
-else:
+elif not gvname:
 	gvname = input_name[:-4]
 
+# gvname does not end with ".gv"
 if not gvname.endswith(".gv"):
 	gvname = gvname + ".gv"
+
+# input file does not exist
+if not os.path.isfile(input_name):
+	print("The file \"" + input_name + "\" does not exist. Will now exit.\n")
+	exit()
 
 ####################### start the graph generation ###########################
 
