@@ -72,19 +72,71 @@ minisg = True
 
 ############################### methods #####################################
 
-def readGraph(filename, level=0, body=[], label=""):
-"""Reads a graph from a specified filename.
+def handleArguments(args):
+	"""Will initialize the variables and switches necessary to use all other funtions.
 
-	Args:
-		filename (str): The name of the file in which the graph 
-		level (int, optional): Used for sub-statemachine purposes, this corresponds to the level in which the graph lies. If greater than subst_recs given at the start of the programm, this graph will be reduced to just one state (but will still have all edges).
-		body (list[str], optional): Used to set the style of the body of this graph. Contains of a list of str.
-		label (str, optional): Used to set the label of the graph.
-	Returns:
-		tuple(Digraph, list[edge]): A tuple containing:
-			1. The Digraph of the specified rootnode.
-			2. A list of edges. The edges themself are tuples containing two str: The first beeing the start-node, the second beeing either the end-node or a special string containing the event this state sends. These 'special' edges need to be accounted for.
-"""
+		Args:
+			args (list[str]): The switches with which the generator shall be initialized.
+	"""
+	if len(args) < 2:
+		print(help_text)
+		exit(0)
+
+	for each in args:
+		if each == "-h" or each == "--h" or each == "--help" or each=="-help":
+			print(help_text)
+			exit(0)
+		elif each == "--ex":
+			excl_subst = True
+			subst_recs = 0
+		elif each.startswith("--reduce="):
+			subst_recs = each.split("=")[1]
+		elif each == "--bw":
+			color = False
+		elif each.startswith("--format="):
+			tmp = each.split("=")[1]	
+			if tmp in graphviz.FORMATS:
+				fmt = tmp
+			else:
+				print("Specified format not known! Will now exit.\n")
+				exit()
+		elif each.endswith(".xml"):
+			input_name = each
+		elif each == "--savegv":
+			savegv = True
+		elif each.startswith("--gvname="):
+			gvname = each.split("=")[1]
+		elif each.startswith("--rengine="):
+			tmp = each.split("=")[1]	
+			if tmp in graphviz.ENGINES:
+				fmt = tmp
+			else:
+				print("Specified engine not known! Will now exit.\n")
+				exit()
+			rengine = each.split("=")[1]
+		elif each == "--nocmpstates":
+			minisg = False
+		else:
+			print("Parameter \"" + each + "\" not recognized. Will now exit.\n")
+			exit()
+
+def readGraph(filename, level=0, body=[], label=""):
+	"""Reads a graph from a specified filename.
+
+		Args:
+			filename (str): The name of the file in which the graph 
+			level (int, optional): Used for sub-statemachine purposes, this corresponds to the level in which the graph lies. If greater
+				than subst_recs given at the start of the programm, this graph will be reduced to just one state (but will still have all edges).
+			body (list[str], optional): Used to set the style of the body of this graph. Contains of a list of str.
+			label (str, optional): Used to set the label of the graph.
+
+		Returns:
+			tuple(Digraph, list[edge]): A tuple containing:
+				1. The Digraph of the specified rootnode.
+				2. A list of edges. The edges themself are tuples containing two str: The first beeing the start-node, the second beeing 
+					either the end-node or a special string containing the event this state sends. These 'special' edges need to be
+					accounted for.
+	"""
 	# prepare return graph
 	g = Digraph('g', engine=rengine)
 
@@ -110,104 +162,75 @@ def readGraph(filename, level=0, body=[], label=""):
 	return "TODO: implementation"
 
 def build_mini_sg(root, label=""):
-"""Builds a subgraph from a specified root node.
+	"""Builds a subgraph from a specified root node.
 
-	Args:
-		root (Digraph.node): The root node from which this subgraph extends.
-		label (str): Used to label the subgraph.
+		Args:
+			root (Digraph.node): The root node from which this subgraph extends.
+			label (str): Used to label the subgraph.
 
-	Returns:
-		tuple(Digraph, list[edge]): A tuple containing:
-			1. The Digraph of the specified rootnode.
-			2. A list of edges. The edges themself are tuples containing two str: The first beeing the start-node, the second beeing either the end-node or a special string containing the event this state sends. These 'special' edges need to be accounted for.
-"""
+		Returns:
+			tuple(Digraph, list[edge]): A tuple containing:
+				1. The Digraph of the specified rootnode.
+				2. A list of edges. The edges themself are tuples containing two str: 
+					The first beeing the start-node, the second beeing either the end-node or a special string 
+					containing the event this state sends. These 'special' edges need to be accounted for.
+	"""
 	pass
 
 def detSubBody(body):
-"""Determins the suitable body for the subgraph of a graph with a given body.
+	"""Determins the suitable body for the subgraph of a graph with a given body.
 
-Following order is in use: No body for the main graph.
+	Following order is in use: No body for the main graph.
 
-	Args:
-		body (list[str]): The body of the graph you want to determine the body of the subgraphs of. Contains of a list of str.
+		Args:
+			body (list[str]): The body of the graph you want to determine the body of the subgraphs of. Contains of a list of str.
 
-	Returns:
-		list[str]: The body of the subgraphs of the graph with the passed body.
-"""
+		Returns:
+			list[str]: The body of the subgraphs of the graph with the passed body.
+	"""
 	return body
 
 
 ######################## startup and flag stuff ##############################
 
-if len(sys.argv) < 2:
-	print(help_text)
-	exit(0)
+def main():
+	"""Main function of this programm. Will generate a graph based on the given arguments.
+	"""
 
-for each in sys.argv:
-	if each == "-h" or each == "--h" or each == "--help" or each=="-help":
-		print(help_text)
-		exit(0)
-	elif each == "--ex":
-		excl_subst = True
-		subst_recs = 0
-	elif each.startswith("--reduce="):
-		subst_recs = each.split("=")[1]
-	elif each == "--bw":
-		color = False
-	elif each.startswith("--format="):
-		tmp = each.split("=")[1]	
-		if tmp in graphviz.FORMATS:
-			fmt = tmp
-		else:
-			print("Specified format not known! Will now exit.\n")
-			exit()
-	elif each.endswith(".xml"):
-		input_name = each
-	elif each == "--savegv":
-		savegv = True
-	elif each.startswith("--gvname="):
-		gvname = each.split("=")[1]
-	elif each.startswith("--rengine="):
-		tmp = each.split("=")[1]	
-		if tmp in graphviz.ENGINES:
-			fmt = tmp
-		else:
-			print("Specified engine not known! Will now exit.\n")
-			exit()
-		rengine = each.split("=")[1]
-	elif each == "--nocmpstates":
-		minisg = False
-	else:
-		print("Parameter \"" + each + "\" not recognized. Will now exit.\n")
-		exit()
+	# initialize the switches and stuff
+	handleArguments(sys.argv)
 
 ############################# Sanity checks ##################################
 
-# no input file
-if input_name == "":
-	print("Input file is not an .xml or not specified! Will now exit.\n")
-	exit()
+	# no input file
+	if input_name == "":
+		print("Input file is not an .xml or not specified! Will now exit.\n")
+		exit()
 
-# gvname specified but not savegv
-if not gvname == "" and not savegv:
-	print("gvname specified but not savegv! Will now exit.\n")
-	exit()
-elif not gvname:
-	gvname = input_name[:-4]
+	# gvname specified but not savegv
+	if not gvname == "" and not savegv:
+		print("gvname specified but not savegv! Will now exit.\n")
+		exit()
+	elif not gvname:
+		gvname = input_name[:-4]
 
-# gvname does not end with ".gv"
-if not gvname.endswith(".gv"):
-	gvname = gvname + ".gv"
+	# gvname does not end with ".gv"
+	if not gvname.endswith(".gv"):
+		gvname = gvname + ".gv"
 
-# input file does not exist
-if not os.path.isfile(input_name):
-	print("The file \"" + input_name + "\" does not exist. Will now exit.\n")
-	exit()
+	# input file does not exist
+	if not os.path.isfile(input_name):
+		print("The file \"" + input_name + "\" does not exist. Will now exit.\n")
+		exit()
 
 ####################### start the graph generation ###########################
 
-ns = root.tag[:-5] # get the namespace of this document 
+	ns = root.tag[:-5] # get the namespace of this document 
 
-DG = Digraph('G', engine=rengine)
+	DG = Digraph('G', engine=rengine)
 
-exit()
+	exit()
+
+#  If this script is executed in itself, run the main method (aka generate the graph).
+if __name__ == '__main__':
+	main()
