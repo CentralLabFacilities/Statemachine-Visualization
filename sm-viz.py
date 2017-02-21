@@ -16,7 +16,7 @@ Written by Slothologist.
 ############################ variables ####################################
 
 help_text= "\
-Usage: sm-viz.py your-statemachine.scxml\n\
+Usage: sm-viz.py your-statemachine.xml\n\
 Possible switches:\n\t\
 --h \t\t Displays this very helpful text. \n\t\
 --ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to make your graph more readable. \n\t\
@@ -32,7 +32,7 @@ Possible switches:\n\t\
 """str: Helping text. If you change things here the amount of tabs (after the flags) may be in need of adjustments.
 """
 
-input_name = ""
+inputName = ""
 """str: Specifies the name of the input file.
 """
 
@@ -62,7 +62,7 @@ gvname = ""
 """str: Controls the filename of the saved GraphViz code.
 """
 
-rengine = ""
+rengine = "dot"
 """str: Controls the engine used to render the graph.
 """
 
@@ -81,6 +81,17 @@ def handleArguments(args):
 	if len(args) < 2:
 		print(help_text)
 		exit(0)
+
+	# global variables (basically all switches)
+	global excl_subst
+	global subst_recs
+	global colordict
+	global fmt
+	global inputName
+	global savegv
+	global gvname
+	global rengine
+	global minisg
 
 	for each in args:
 		if each == "-h" or each == "--h" or each == "--help" or each=="-help":
@@ -108,7 +119,7 @@ def handleArguments(args):
 				print("Specified format not known! Will now exit.\n")
 				exit()
 		elif each.endswith(".xml"):
-			input_name = each
+			inputName = each
 		elif each == "--savegv":
 			savegv = True
 		elif each.startswith("--gvname="):
@@ -116,22 +127,30 @@ def handleArguments(args):
 		elif each.startswith("--rengine="):
 			tmp = each.split("=")[1]	
 			if tmp in graphviz.ENGINES:
-				fmt = tmp
+				rengine = tmp
 			else:
 				print("Specified engine not known! Will now exit.\n")
 				exit()
 			rengine = each.split("=")[1]
 		elif each == "--nocmpstates":
 			minisg = False
+		elif each == __file__:
+			pass
 		else:
 			print("Parameter \"" + each + "\" not recognized. Will now exit.\n")
 			exit()
 
 def sanityChecks():
-"""Will 
-"""
+	"""Will check the given parameters for their sanity. Will print an errormessage and exit on broken sanity.
+	"""
+
+	# global variables (basically switches)
+	global inputName
+	global gvname
+	global savegv
+
 	# no input file
-	if input_name == "":
+	if inputName == "":
 		print("Input file is not an .xml or not specified! Will now exit.\n")
 		exit()
 
@@ -140,15 +159,15 @@ def sanityChecks():
 		print("gvname specified but not savegv! Will now exit.\n")
 		exit()
 	elif not gvname:
-		gvname = input_name[:-4]
+		gvname = inputName[:-4]
 
 	# gvname does not end with ".gv"
 	if not gvname.endswith(".gv"):
 		gvname = gvname + ".gv"
 
 	# input file does not exist
-	if not os.path.isfile(input_name):
-		print("The file \"" + input_name + "\" does not exist. Will now exit.\n")
+	if not os.path.isfile(inputName):
+		print("The file \"" + inputName + "\" does not exist. Will now exit.\n")
 		exit()
 
 def readGraph(filename, level=0, body=[], label=""):
@@ -199,10 +218,9 @@ def readGraph(filename, level=0, body=[], label=""):
 						else:
 							for every in each:
 								if every.tag[len(ns):] == "send":
-									edges.append((child.attrib['id'], every.attrib['event'])
+									edges.append((child.attrib['id'], every.attrib['event']))
 					elif each.tag[len(ns):] == "send":
-						edges.append((child.attrib['id'], each.attrib['event'])
-
+						edges.append((child.attrib['id'], each.attrib['event']))
 	if label:
 		g.body.append('label = \"' + label + '\"')
 	if level == 0:
