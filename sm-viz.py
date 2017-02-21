@@ -201,6 +201,14 @@ def readGraph(filename, level=0, body=[], label=""):
 			# case: compound state
 			if "initial" in child.attrib:
 				print("generate mini-subgraph")
+				(sg, ed) = buildMiniSg(child, label=child.tag[len(ns):])
+				if minisg:
+					g.subgraph(sg)
+					for each in ed:
+						g.edge(each[0], each[1], label=each[2], color=detEdgeColor(each[2]))
+				else:
+					# make the node stand out visually, keep edges
+					pass
 			# case: substatemachine in seperate .xml
 			elif "src" in child.attrib:
 				print("generate true subgraph")
@@ -228,12 +236,21 @@ def readGraph(filename, level=0, body=[], label=""):
 		g.body.append('fontsize=20')
 		g.node('Start', shape='Mdiamond')
 		g.edge('Start', initial_state)
-		g.node('End', shape='Msquare')
+		g.node('Finish', shape='Msquare')
 		for each in edges:
 			g.edge(each[0], 'End', label=each[1], color=detEdgeColor(each[1]))
 	return (g, edges)
 
-def build_mini_sg(root, label=""):
+def iterateThroughNodes(root, graph):
+	"""Iterates through the childnodes of the given rootnode. Adds all children to a given graph.
+
+		Args:
+			root (Digraph.node): The rootnode through which shall be iterated
+			graph (Digraph): The graph to which the nodes and edges will be added.
+	"""
+	pass
+
+def buildMiniSg(root, label=""):
 	"""Builds a subgraph from a specified root node.
 
 		Args:
@@ -243,10 +260,12 @@ def build_mini_sg(root, label=""):
 		Returns:
 			tuple(Digraph, list[edge]): A tuple containing:
 				1. The Digraph of the specified rootnode.
-				2. A list of edges. The edges themself are tuples containing two str: The first beeing the start-node, the second beeing 
-					a special string containing the event this state sends. These 'special' edges need to be accounted for.
+				2. A list of edges. The edges themself are tuples containing tree str: The first beeing the start-node, the second beeing 
+					the end-node. The third one equals the event which .
 	"""
-	pass
+	sub = Digraph(label, engine=rengine, format=fmt)
+	edg = []
+	return (sub, edg)
 
 def detEdgeColor(event):
 	"""Determins the color of a edge, given a specific event.
