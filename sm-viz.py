@@ -19,15 +19,16 @@ help_text= "\
 Usage: sm-viz.py your-statemachine.xml\n\
 Possible switches:\n\t\
 --h \t\t Displays this very helpful text. \n\t\
---ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to make your graph more readable. \n\t\
+--ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to make your graph more readable. WIP \n\t\
 --reduce=n \t Exclude all Substatemachines below n levels. Use this to make your graph more readable without sacrificing inormation. WIP \n\t\
+--nocmpstates \t Similarly to ex and reduce this will suppress compound states (states in states). WIP \n\t\
+--cmpstateclr=clr \t Will set the color of the border in which compound states reside \n\t\
 --bw \t\t Will render the graph without colors (aka in black and white). \n\t\
 --eventclr=event:color \t Will use the specified color for the event. Uses a contains internally. Multiple values possible, eg: --eventclr=success:green,error:red \n\t\
---format=fmt \t Will render the graph in the specified format. Available formats are: png (default), pdf etc. WIP\n\t\
---savegv \t Will save the generated GraphViz code. WIP \n\t\
---gvname=name \t Will save the generated Graphviz code under the given name. Default name is the same as your input (but with extension .gv) Use with -savegv WIP \n\t\
---rengine=ngin \t Will use the specified engine (ngin) to render the graph \n\t\
---nocmpstates \t Similarly to ex and reduce this will suppress compound states (states in states). WIP \
+--format=fmt \t Will render the graph in the specified format. Available formats are: png (default), pdf etc. \n\t\
+--savegv \t Will save the generated GraphViz code. \n\t\
+--gvname=name \t Will save the generated Graphviz code under the given name. Default name is the same as your input (but with extension .gv) Use with -savegv \n\t\
+--rengine=ngin \t Will use the specified engine (ngin) to render the graph \
 \n"
 """str: Helping text. If you change things here the amount of tabs (after the flags) may be in need of adjustments.
 """
@@ -48,6 +49,14 @@ colordict = {"Timeout": "blue", "success": "green", "fatal": "red", "error": "re
 
 subst_recs = float('inf')
 """float: Amount of recursive steps to which substate machines will be included. Usage as int, but only float supports infty.
+"""
+
+cmp_color = "black"
+"""str: Color of the border in which surrounds compound states.
+"""
+
+sendevntcolor = "blue"
+"""str: Determins the color of the labels of send-event edges.
 """
 
 fmt = "png"
@@ -92,6 +101,7 @@ def handleArguments(args):
 	global gvname
 	global rengine
 	global minisg
+	global cmp_color
 
 	for each in args:
 		if each == "-h" or each == "--h" or each == "--help" or each=="-help":
@@ -102,9 +112,12 @@ def handleArguments(args):
 			subst_recs = 0
 		elif each.startswith("--reduce="):
 			subst_recs = each.split("=")[1]
+		elif each.startswith("--cmpstateclr="):
+			cmp_color = each.split("=")[1]
 		elif each == "--bw":
 			for each in colordict:
 				colordict[each] = "black"
+				sendevntcolor = "black"
 		elif each.startswith("--eventclr="):
 			tmp = each.split("=")[1]
 			clrs = tmp.split(",")
@@ -208,7 +221,9 @@ def readGraph(filename, level=0, body=[], label=""):
 						g.edge(each[0], each[1], label=each[2], color=detEdgeColor(each[2]))
 				else:
 					# make the node stand out visually, keep edges
-					pass
+					g.node(child.attrib['id'], style="filled")
+					for each in ed:
+						g.edge(child.attrib['id'], each[1], label=each[2], color=detEdgeColor(each[2]))
 			# case: substatemachine in seperate .xml
 			elif "src" in child.attrib:
 				print("generate true subgraph")
@@ -221,7 +236,7 @@ def readGraph(filename, level=0, body=[], label=""):
 					if each.tag[len(ns):] == "transition":
 						# case: regular state transition
 						if "target" in each.attrib:
-							g.edge(child.attrib['id'], each.attrib['target'], label=each.attrib['event'], color=detEdgeColor(each.attrib['event']))
+							g.edge(child.attrib['id'], each.attrib['target'], label=reduTransEvnt(each.attrib['event']), color=detEdgeColor(each.attrib['event']))
 						# case: send event transition TODO: ugly
 						else:
 							for every in each:
@@ -238,7 +253,7 @@ def readGraph(filename, level=0, body=[], label=""):
 		g.edge('Start', initial_state)
 		g.node('Finish', shape='Msquare')
 		for each in edges:
-			g.edge(each[0], 'End', label=each[1], color=detEdgeColor(each[1]))
+			g.edge(each[0], 'Finish', label=each[1], color=detEdgeColor(each[1]), fontcolor=sendevntcolor)
 	return (g, edges)
 
 def iterateThroughNodes(root, graph):
@@ -247,8 +262,22 @@ def iterateThroughNodes(root, graph):
 		Args:
 			root (Digraph.node): The rootnode through which shall be iterated
 			graph (Digraph): The graph to which the nodes and edges will be added.
+
+		Returns:
+			nothing
 	"""
 	pass
+
+def reduTransEvnt(event):
+	"""Reduces a given event so its skills name is removed.
+
+		Args:
+			event (str): The event which shall be reduced.
+
+		Returns:
+			str: The event without its skills name.
+	"""
+	return event[event.find(".")+1:]
 
 def buildMiniSg(root, label=""):
 	"""Builds a subgraph from a specified root node.
@@ -261,9 +290,10 @@ def buildMiniSg(root, label=""):
 			tuple(Digraph, list[edge]): A tuple containing:
 				1. The Digraph of the specified rootnode.
 				2. A list of edges. The edges themself are tuples containing tree str: The first beeing the start-node, the second beeing 
-					the end-node. The third one equals the event which .
+					the end-node. The third one equals the event which determins the endnode.
 	"""
 	sub = Digraph(label, engine=rengine, format=fmt)
+	sub.body.append("color = " + cmp_color)
 	edg = []
 	return (sub, edg)
 
