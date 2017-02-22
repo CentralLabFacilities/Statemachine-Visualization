@@ -213,7 +213,6 @@ def readGraph(filename, level=0, body=[], label=""):
 		if child.tag.endswith("state"):
 			# case: compound state
 			if "initial" in child.attrib:
-				print("generate mini-subgraph")
 				(sg, ed) = buildMiniSg(child, label=child.tag[len(ns):])
 				if minisg:
 					g.subgraph(sg)
@@ -264,9 +263,55 @@ def iterateThroughNodes(root, graph):
 			graph (Digraph): The graph to which the nodes and edges will be added.
 
 		Returns:
-			nothing
+			tuple(Digraph, list(outEdges), list(inEdges)): A tuple containing:
+				1. The passed graph, extended with the nodes and edges found in the rootnode and its children.
+				2. A list of all outgoing edges. These edges are represented as tuples of two str: The first beeing the start-node, the second beeing 
+				a special string containing the event this state sends. These 'special' edges need to be accounted for.
+				3. A list of all added internal edges. Returned for convenience, so this function can be used to iterate through compound states.
 	"""
-	pass
+
+	g = graph
+	outEdges = []
+	inEdges = []
+
+	for child in root:
+		if child.tag.endswith("state"):
+			# case: compound state
+			if "initial" in child.attrib:
+				(sg, ed) = buildMiniSg(child, label=child.tag[len(ns):])
+				if minisg:
+					g.subgraph(sg)
+					for each in ed:
+						g.edge(each[0], each[1], label=each[2], color=detEdgeColor(each[2]))
+						inEdges.append((each[0], each[1], each[2], detEdgeColor(each[2])))
+				else:
+					# make the node stand out visually, keep edges
+					g.node(child.attrib['id'], style="filled")
+					for each in ed:
+						g.edge(child.attrib['id'], each[1], label=each[2], color=detEdgeColor(each[2]))
+						inEdges.append((child.attrib['id'], each[1], each[2], detEdgeColor(each[2])))
+			# case: substatemachine in seperate .xml
+			elif "src" in child.attrib:
+				print("generate true subgraph")
+			# case: parallel states
+			elif "parallel" in child.attrib:
+				print("draw parallel subgraph")
+			# case: regular state
+			else:
+				for each in child:
+					if each.tag[len(ns):] == "transition":
+						# case: regular state transition
+						if "target" in each.attrib:
+							g.edge(child.attrib['id'], each.attrib['target'], label=reduTransEvnt(each.attrib['event']), color=detEdgeColor(each.attrib['event']))
+							inEdges.append((child.attrib['id'], each.attrib['target'], each.attrib['event'], detEdgeColor(each.attrib['event'])))
+						# case: send event transition
+						else:
+							for every in each:
+								if every.tag[len(ns):] == "send":
+									outEdges.append((child.attrib['id'], every.attrib['event']))
+					elif each.tag[len(ns):] == "send":
+						outEdges.append((child.attrib['id'], each.attrib['event']))
+	return (g, outEdges, inEdges)
 
 def reduTransEvnt(event):
 	"""Reduces a given event so its skills name is removed.
@@ -289,13 +334,24 @@ def buildMiniSg(root, label=""):
 		Returns:
 			tuple(Digraph, list[edge]): A tuple containing:
 				1. The Digraph of the specified rootnode.
-				2. A list of edges. The edges themself are tuples containing tree str: The first beeing the start-node, the second beeing 
-					the end-node. The third one equals the event which determins the endnode.
+				2. A list of edges. The edges themself are tuples containing four str: The first beeing the start-node, the second beeing 
+					the end-node. The third one equals the event which determins the endnode. The fourth is the color in which the edge shall be rendered.
 	"""
 	sub = Digraph(label, engine=rengine, format=fmt)
 	sub.body.append("color = " + cmp_color)
-	edg = []
-	return (sub, edg)
+	tmp = Digraph("bla")
+	(tmp, oE, iE) = iterateThroughNodes(root, tmp)
+	E = oE
+
+	insideNodes = []
+	for each in iE:
+		insideNodes.append(each[0])
+
+	for each in iE:
+		if each[1] not in insideNodes:
+			E.append(each)
+
+	return (sub, E)
 
 def detEdgeColor(event):
 	"""Determins the color of a edge, given a specific event.
