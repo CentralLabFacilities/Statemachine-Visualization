@@ -207,42 +207,9 @@ def readGraph(filename, level=0, body=[], label=""):
 	root = tree.getroot()
 	initial_state = root.attrib['initial']
 	send_events = []
-	edges = []
 
-	for child in root:
-		if child.tag.endswith("state"):
-			# case: compound state
-			if "initial" in child.attrib:
-				(sg, ed) = buildMiniSg(child, label=child.tag[len(ns):])
-				if minisg:
-					g.subgraph(sg)
-					for each in ed:
-						g.edge(each[0], each[1], label=each[2], color=detEdgeColor(each[2]))
-				else:
-					# make the node stand out visually, keep edges
-					g.node(child.attrib['id'], style="filled")
-					for each in ed:
-						g.edge(child.attrib['id'], each[1], label=each[2], color=detEdgeColor(each[2]))
-			# case: substatemachine in seperate .xml
-			elif "src" in child.attrib:
-				print("generate true subgraph")
-			# case: parallel states
-			elif "parallel" in child.attrib:
-				print("draw parallel subgraph")
-			# case: regular state
-			else:
-				for each in child:
-					if each.tag[len(ns):] == "transition":
-						# case: regular state transition
-						if "target" in each.attrib:
-							g.edge(child.attrib['id'], each.attrib['target'], label=reduTransEvnt(each.attrib['event']), color=detEdgeColor(each.attrib['event']))
-						# case: send event transition TODO: ugly
-						else:
-							for every in each:
-								if every.tag[len(ns):] == "send":
-									edges.append((child.attrib['id'], every.attrib['event']))
-					elif each.tag[len(ns):] == "send":
-						edges.append((child.attrib['id'], each.attrib['event']))
+	(g, oE, iE) = iterateThroughNodes(root, g)
+	
 	if label:
 		g.body.append('label = \"' + label + '\"')
 	if level == 0:
@@ -251,9 +218,9 @@ def readGraph(filename, level=0, body=[], label=""):
 		g.node('Start', shape='Mdiamond')
 		g.edge('Start', initial_state)
 		g.node('Finish', shape='Msquare')
-		for each in edges:
+		for each in oE:
 			g.edge(each[0], 'Finish', label=each[1], color=detEdgeColor(each[1]), fontcolor=sendevntcolor)
-	return (g, edges)
+	return (g, oE)
 
 def iterateThroughNodes(root, graph):
 	"""Iterates through the childnodes of the given rootnode. Adds all children to a given graph.
