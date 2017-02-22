@@ -247,6 +247,10 @@ def iterateThroughNodes(root, graph):
 			# case: compound state
 			if "initial" in child.attrib:
 				(sg, ed) = buildMiniSg(child, label=child.attrib['id'])
+
+				sg.body.append("\tcolor=" + cmp_color)
+				sg.body.append("\tlabel = \"" + child.attrib['id'] + "\"")
+				
 				cmpstates[child.attrib['id']] = child.attrib['initial']
 				if minisg:
 					g.subgraph(sg)
@@ -318,9 +322,7 @@ def buildMiniSg(root, label=""):
 				2. A list of edges. The edges themself are tuples containing four str: The first beeing the start-node, the second beeing 
 					the end-node. The third one equals the event which determins the endnode. The fourth is the color in which the edge shall be rendered.
 	"""
-	sub = Digraph(label, engine=rengine, format=fmt)
-	sub.body.append("color=" + cmp_color)
-	sub.body.append("label = \"" + label + "\"")
+	sub = Digraph("cluster_" + label, engine=rengine, format=fmt)
 	tmp = Digraph("bla")
 	(tmp, oE, iE) = iterateThroughNodes(root, tmp)
 	E = oE
