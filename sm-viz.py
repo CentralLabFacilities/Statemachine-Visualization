@@ -335,7 +335,7 @@ def buildMiniSg(root, label=""):
 	E = oE
 
 	sub.body.append("\tcolor=" + cmp_color)
-	sub.body.append("\tlabel = \"" + child.attrib['id'] + "\"")
+	sub.body.append("\tlabel = \"" + label + "\"")
 
 	insideNodes = []
 	for each in iE:
@@ -345,7 +345,7 @@ def buildMiniSg(root, label=""):
 		if each[1] not in insideNodes:
 			E.append(each)
 		else:
-			sub.edge(each[0], each[1], label=each[2], color=each[3])
+			sub.edge(each[0], each[1], label=reduTransEvnt(each[2]), color=each[3])
 
 	return (sub, E)
 
