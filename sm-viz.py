@@ -19,17 +19,29 @@ help_text= "\
 Usage: sm-viz.py your-statemachine.xml\n\
 Possible switches:\n\t\
 --h \t\t Displays this very helpful text. \n\t\
---ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to make your graph more readable. WIP \n\t\
---reduce=n \t Exclude all Substatemachines below n levels. Use this to make your graph more readable without sacrificing inormation. WIP \n\t\
---nocmpstates \t Similarly to ex and reduce this will suppress compound states (states in states). WIP \n\t\
---cmpstateclr=clr \t Will set the color of the border in which compound states reside \n\t\
+--ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to \
+make your graph more readable. WIP \n\t\
+--reduce=n \t Exclude all Substatemachines below n levels. Use this to make your graph more readable without \
+sacrificing inormation. WIP \n\t\
+--nocmpstates \t Similarly to ex and reduce this will suppress compound states (states in states). \n\t\
+--cmpstateclr=clr \t Will set the color of the border in which compound states reside. \n\t\
 --bw \t\t Will render the graph without colors (aka in black and white). \n\t\
---eventclr=event:color \t Will use the specified color for the event. Uses a contains internally. Multiple values possible, eg: --eventclr=success:green,error:red \n\t\
+--eventclr=event:color \t Will use the specified color for the event. Uses a contains internally. Multiple values \
+possible, eg: --eventclr=success:green,error:red \n\t\
 --format=fmt \t Will render the graph in the specified format. Available formats are: png (default), pdf etc. \n\t\
 --savegv \t Will save the generated GraphViz code. \n\t\
---gvname=name \t Will save the generated Graphviz code under the given name. Default name is the same as your input (but with extension .gv) Use with -savegv \n\t\
---rengine=ngin \t Will use the specified engine (ngin) to render the graph \
-\n"
+--gvname=name \t Will save the generated Graphviz code under the given name. Default name is the same as your input\
+ (but with extension .gv) Use with -savegv \n\t\
+--rengine=ngin \t Will use the specified engine (ngin) to render the graph \n\
+\n\
+Will render a given statemachine into a .png file (unless otherwise specified) using GraphViz. \n\
+Will defautly color regular edges. Edges containing the words \"fatal\" or \"error\" will be rendered red, \
+\"success\" green and \"Timeout\" blue. Furthermore, edges representing \'send events\' will have their label \
+rendered blue.\n\
+Compound states will either be rendered surrounded by a black border or into a single, gray state, depending on the \
+\'nocmpstates\' flag. \n\
+Substatemachines will be coloured differently depending on the level or be reduced into a single, double bordered state.\
+"
 """str: Helping text. If you change things here the amount of tabs (after the flags) may be in need of adjustments.
 """
 
@@ -206,7 +218,6 @@ def readGraph(filename, level=0, body=[], label=""):
 	tree = ET.parse(filename)
 	root = tree.getroot()
 	initial_state = root.attrib['initial']
-	send_events = []
 
 	(g, oE, iE) = iterateThroughNodes(root, g)
 
@@ -247,14 +258,10 @@ def iterateThroughNodes(root, graph):
 			# case: compound state
 			if "initial" in child.attrib:
 				(sg, ed) = buildMiniSg(child, label=child.attrib['id'])
-
-				sg.body.append("\tcolor=" + cmp_color)
-				sg.body.append("\tlabel = \"" + child.attrib['id'] + "\"")
 				
 				cmpstates[child.attrib['id']] = child.attrib['initial']
 				if minisg:
 					g.subgraph(sg)
-					print(ed)
 					for each in ed:
 						inEdges.append((each[0], each[1], each[2], detEdgeColor(each[2])))
 				else:
@@ -327,6 +334,9 @@ def buildMiniSg(root, label=""):
 	(tmp, oE, iE) = iterateThroughNodes(root, tmp)
 	E = oE
 
+	sub.body.append("\tcolor=" + cmp_color)
+	sub.body.append("\tlabel = \"" + child.attrib['id'] + "\"")
+
 	insideNodes = []
 	for each in iE:
 		insideNodes.append(each[0])
@@ -356,13 +366,13 @@ def detEdgeColor(event):
 			break
 	return edgecolor
 
-def detSubBody(body):
-	"""Determins the suitable body for the subgraph of a graph with a given body.
+def detSubBody(level):
+	"""Determins the suitable body for the subgraph of a graph with a given level.
 
 	Following order is in use: No body for the main graph.
 
 		Args:
-			body (list[str]): The body of the graph you want to determine the body of the subgraphs of. Contains of a list of str.
+			level (int): The level of the graph you want to determine the body of the subgraphs of. Contains of a list of str.
 
 		Returns:
 			list[str]: The body of the subgraphs of the graph with the passed body.
