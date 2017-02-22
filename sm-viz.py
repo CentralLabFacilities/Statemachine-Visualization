@@ -209,7 +209,7 @@ def readGraph(filename, level=0, body=[], label=""):
 	send_events = []
 
 	(g, oE, iE) = iterateThroughNodes(root, g)
-	
+
 	if label:
 		g.body.append('label = \"' + label + '\"')
 	if level == 0:
@@ -240,22 +240,23 @@ def iterateThroughNodes(root, graph):
 	g = graph
 	outEdges = []
 	inEdges = []
+	cmpstates = {}
 
 	for child in root:
 		if child.tag.endswith("state"):
 			# case: compound state
 			if "initial" in child.attrib:
-				(sg, ed) = buildMiniSg(child, label=child.tag[len(ns):])
+				(sg, ed) = buildMiniSg(child, label=child.attrib['id'])
+				cmpstates[child.attrib['id']] = child.attrib['initial']
 				if minisg:
 					g.subgraph(sg)
+					print(ed)
 					for each in ed:
-						g.edge(each[0], each[1], label=each[2], color=detEdgeColor(each[2]))
 						inEdges.append((each[0], each[1], each[2], detEdgeColor(each[2])))
 				else:
 					# make the node stand out visually, keep edges
 					g.node(child.attrib['id'], style="filled")
 					for each in ed:
-						g.edge(child.attrib['id'], each[1], label=each[2], color=detEdgeColor(each[2]))
 						inEdges.append((child.attrib['id'], each[1], each[2], detEdgeColor(each[2])))
 			# case: substatemachine in seperate .xml
 			elif "src" in child.attrib:
@@ -269,7 +270,6 @@ def iterateThroughNodes(root, graph):
 					if each.tag[len(ns):] == "transition":
 						# case: regular state transition
 						if "target" in each.attrib:
-							g.edge(child.attrib['id'], each.attrib['target'], label=reduTransEvnt(each.attrib['event']), color=detEdgeColor(each.attrib['event']))
 							inEdges.append((child.attrib['id'], each.attrib['target'], each.attrib['event'], detEdgeColor(each.attrib['event'])))
 						# case: send event transition
 						else:
@@ -278,6 +278,20 @@ def iterateThroughNodes(root, graph):
 									outEdges.append((child.attrib['id'], every.attrib['event']))
 					elif each.tag[len(ns):] == "send":
 						outEdges.append((child.attrib['id'], each.attrib['event']))
+
+	actual_inEdges = []
+
+	for each in inEdges:
+		if each[1] in cmpstates:
+			actual_inEdges.append((each[0], cmpstates[each[1]], each[2], each[3]))
+		else:
+			actual_inEdges.append(each)
+
+	inEdges = actual_inEdges
+
+	for each in inEdges:
+		g.edge(each[0], each[1], label=reduTransEvnt(each[2]), color=each[3])
+
 	return (g, outEdges, inEdges)
 
 def reduTransEvnt(event):
@@ -305,7 +319,8 @@ def buildMiniSg(root, label=""):
 					the end-node. The third one equals the event which determins the endnode. The fourth is the color in which the edge shall be rendered.
 	"""
 	sub = Digraph(label, engine=rengine, format=fmt)
-	sub.body.append("color = " + cmp_color)
+	sub.body.append("color=" + cmp_color)
+	sub.body.append("label = \"" + label + "\"")
 	tmp = Digraph("bla")
 	(tmp, oE, iE) = iterateThroughNodes(root, tmp)
 	E = oE
@@ -317,6 +332,8 @@ def buildMiniSg(root, label=""):
 	for each in iE:
 		if each[1] not in insideNodes:
 			E.append(each)
+		else:
+			sub.edge(each[0], each[1], label=each[2], color=each[3])
 
 	return (sub, E)
 
