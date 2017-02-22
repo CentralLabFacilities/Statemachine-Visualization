@@ -259,8 +259,8 @@ def iterateThroughNodes(root, graph):
 			if "initial" in child.attrib:
 				(sg, ed) = buildMiniSg(child, label=child.attrib['id'])
 				
-				cmpstates[child.attrib['id']] = child.attrib['initial']
 				if minisg:
+					cmpstates[child.attrib['id']] = child.attrib['initial']
 					g.subgraph(sg)
 					for each in ed:
 						inEdges.append((each[0], each[1], each[2], detEdgeColor(each[2])))
