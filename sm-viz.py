@@ -124,7 +124,7 @@ def handleArguments(args):
 			excl_subst = True
 			subst_recs = 0
 		elif each.startswith("--reduce="):
-			subst_recs = each.split("=")[1]
+			subst_recs = int(each.split("=")[1])
 		elif each.startswith("--cmpstateclr="):
 			cmp_color = each.split("=")[1]
 		elif each == "--bw":
@@ -227,7 +227,7 @@ def readGraph(filename, level=-1, body=[], label="", graphname=""):
 	root = tree.getroot()
 	initial_state = root.attrib['initial']
 
-	(g, oE, iE) = iterateThroughNodes(root, g, level)
+	(g, oE, iE, subs) = iterateThroughNodes(root, g, level=level)
 
 	if label:
 		g.body.append('label = \"' + label + '\"')
@@ -235,7 +235,12 @@ def readGraph(filename, level=-1, body=[], label="", graphname=""):
 		g.body.append("label=\"\nSM for " + filename + "\"")
 		g.body.append('fontsize=20')
 		g.node('Start', shape='Mdiamond')
-		g.edge('Start', initial_state)
+		
+		if initial_state in subs:
+			g.edge('Start', subs[initial_state])
+		else:
+			g.edge('Start', initial_state)
+
 		g.node('Finish', shape='Msquare')
 		for each in oE:
 			g.edge(each[0], 'Finish', label=each[1], color=detEdgeColor(each[1]), fontcolor=sendevntcolor)
@@ -259,6 +264,7 @@ def iterateThroughNodes(root, graph, level=1):
 				2. A list of all outgoing edges. These edges are represented as tuples of two str: The first beeing the start-node, the second beeing 
 				a special string containing the event this state sends. These 'special' edges need to be accounted for.
 				3. A list of all added internal edges. Returned for convenience, so this function can be used to iterate through compound states.
+				4. A dictionary containing all names of substatemachines and their respective initial states.
 	"""
 
 	g = graph
@@ -287,12 +293,16 @@ def iterateThroughNodes(root, graph, level=1):
 			# case: substatemachine in seperate .xml
 			elif "src" in child.attrib: #WIP
 				(sg, oE, ini) = readGraph(child.attrib['src'], level=level+1)
-
+				print(level, subst_recs)
 				# case: level too big, subsm will be reduced
-				if level+1 > subst_recs:
+				if level+1 >= subst_recs:
 					g.node(child.attrib['id'], style="filled", shape="doublecircle")
-					for each in oE:
-						inEdges.append((child.attrib['id'], each[1], each[2], sendevntcolor))
+					for out_edge in oE:
+						for propTrans in child: # propably transitions
+							if propTrans.tag[len(ns):] == "transition" and propTrans.attrib['event'] == child.attrib['id'] + out_edge[1]:
+								target = propTrans.attrib['target']
+								inEdges.append((child.attrib['id'], target, out_edge[1], sendevntcolor))
+								break
 				# case: draw graph completely
 				else:
 					subsms[child.attrib['id']] = ini
@@ -338,7 +348,7 @@ def iterateThroughNodes(root, graph, level=1):
 	for each in inEdges:
 		g.edge(each[0], each[1], label=reduTransEvnt(each[2]), color=each[3])
 
-	return (g, outEdges, inEdges)
+	return (g, outEdges, inEdges, subsms)
 
 def reduTransEvnt(event):
 	"""Reduces a given event so its skills name is removed.
@@ -366,7 +376,7 @@ def buildMiniSg(root, label=""):
 	"""
 	sub = Digraph("cluster_" + label, engine=rengine, format=fmt)
 	tmp = Digraph("bla")
-	(tmp, oE, iE) = iterateThroughNodes(root, tmp)
+	(tmp, oE, iE, _) = iterateThroughNodes(root, tmp)
 	E = oE
 
 	sub.body.append("\tcolor=" + cmp_color)
