@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 from graphviz import Digraph
 import sys
 import os.path
+import os
 
 # TODO's
 ## readGraph and build_mini_sg need to return a tuple of the graph and a list of tuples which contain edges and node from which these edges derive
@@ -40,7 +41,7 @@ Will defautly color regular edges. Edges containing the words \"fatal\" or \"err
 rendered blue.\n\
 Compound states will either be rendered surrounded by a black border or into a single, gray state, depending on the \
 \'nocmpstates\' flag. \n\
-Substatemachines will be coloured differently depending on the level or be reduced into a single, double bordered state.\
+Substatemachines will be coloured differently depending on the level or be reduced into a single, double bordered state.\n\
 "
 """str: Helping text. If you change things here the amount of tabs (after the flags) may be in need of adjustments.
 """
@@ -419,7 +420,7 @@ def draw(graph):
 		Args:
 			graph (Digraph): The graph that shall be rendered.
 	"""
-	graph.render(filename=gvname, cleanup=not savegv)
+	graph.render(filename=inputName, cleanup=not savegv)
 	pass
 
 def main():
@@ -435,7 +436,12 @@ def main():
 	# generate the main graph
 	(DG, edges, ini) = readGraph(inputName)
 
+	# then draw it
 	draw(DG)
+
+	# rename the rendered file and the source code
+	os.rename(inputName + "." + fmt, inputName[:-4] + "." + fmt)
+	#os.rename()
 
 	exit()
 
