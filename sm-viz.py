@@ -420,7 +420,7 @@ def draw(graph):
 		Args:
 			graph (Digraph): The graph that shall be rendered.
 	"""
-	graph.render(filename=inputName, cleanup=not savegv)
+	graph.render(filename=gvname, cleanup=not savegv)
 	pass
 
 def main():
@@ -436,13 +436,13 @@ def main():
 	# generate the main graph
 	(DG, edges, ini) = readGraph(inputName)
 
-	# then draw it
 	draw(DG)
 
-	# rename the rendered file and the source code
-	os.rename(inputName + "." + fmt, inputName[:-4] + "." + fmt)
-	#os.rename()
-
+	# rename files according to cmdline parameters
+	if not gvname:
+		os.rename(inputName[:-4] + ".gv." + fmt, inputName[:-4] + "." + fmt)
+	else:
+		os.rename(gvname + "." + fmt, inputName[:-4] + "." + fmt)
 	exit()
 
 #  If this script is executed in itself, run the main method (aka generate the graph).
