@@ -195,7 +195,7 @@ def sanityChecks():
 		print("The file \"" + inputName + "\" does not exist. Will now exit.\n")
 		exit()
 
-def readGraph(filename, level=0, body=[], label=""):
+def readGraph(filename, level=-1, body=[], label="", graphname=""):
 	"""Reads a graph from a specified filename.
 
 		Args:
@@ -204,26 +204,33 @@ def readGraph(filename, level=0, body=[], label=""):
 				than subst_recs given at the start of the programm, this graph will be reduced to just one state (but will still have all edges).
 			body (list[str], optional): Used to set the style of the body of this graph. Contains of a list of str.
 			label (str, optional): Used to set the label of the graph.
+			graphname (str, optional): name of the graph which will be created. Needed only for clustering of subgraphs.
 
 		Returns:
-			tuple(Digraph, list[edge]): A tuple containing:
+			tuple(Digraph, list[edge], str): A tuple containing:
 				1. The Digraph of the specified rootnode.
 				2. A list of edges. The edges themself are tuples containing two str: The first beeing the start-node, the second beeing 
 				a special string containing the event this state sends. These 'special' edges need to be accounted for.
+				3. The initial state of this graph.
 	"""
 	# prepare return graph
-	g = Digraph(filename, engine=rengine, format=fmt)
+	gname = filename
+	if graphname:
+		gname = graphname
+		label = filename
+
+	g = Digraph(gname, engine=rengine, format=fmt)
 
 	# prepare xml tree
 	tree = ET.parse(filename)
 	root = tree.getroot()
 	initial_state = root.attrib['initial']
 
-	(g, oE, iE) = iterateThroughNodes(root, g)
+	(g, oE, iE) = iterateThroughNodes(root, g, level)
 
 	if label:
 		g.body.append('label = \"' + label + '\"')
-	if level == 0:
+	if level == -1:
 		g.body.append("label=\"\nSM for " + filename + "\"")
 		g.body.append('fontsize=20')
 		g.node('Start', shape='Mdiamond')
@@ -231,14 +238,19 @@ def readGraph(filename, level=0, body=[], label=""):
 		g.node('Finish', shape='Msquare')
 		for each in oE:
 			g.edge(each[0], 'Finish', label=each[1], color=detEdgeColor(each[1]), fontcolor=sendevntcolor)
-	return (g, oE)
+	else:
+		for each in body:
+			pass
 
-def iterateThroughNodes(root, graph):
+	return (g, oE, initial_state)
+
+def iterateThroughNodes(root, graph, level=1):
 	"""Iterates through the childnodes of the given rootnode. Adds all children to a given graph.
 
 		Args:
 			root (Digraph.node): The rootnode through which shall be iterated
 			graph (Digraph): The graph to which the nodes and edges will be added.
+			level (int, optional): The level of the graph. 
 
 		Returns:
 			tuple(Digraph, list(outEdges), list(inEdges)): A tuple containing:
@@ -252,7 +264,9 @@ def iterateThroughNodes(root, graph):
 	outEdges = []
 	inEdges = []
 	cmpstates = {}
+	subsms = {}
 
+	# first: gather all the edges
 	for child in root:
 		if child.tag.endswith("state"):
 			# case: compound state
@@ -270,8 +284,24 @@ def iterateThroughNodes(root, graph):
 					for each in ed:
 						inEdges.append((child.attrib['id'], each[1], each[2], detEdgeColor(each[2])))
 			# case: substatemachine in seperate .xml
-			elif "src" in child.attrib:
-				print("generate true subgraph")
+			elif "src" in child.attrib: #WIP
+				(sg, oE, ini) = readGraph(child.attrib['src'], level=level+1)
+
+				# case: level too big, subsm will be reduced
+				if level+1 > subst_recs:
+					g.node(child.attrib['id'], style="filled", shape="doublecircle")
+					for each in oE:
+						inEdges.append((child.attrib['id'], each[1], each[2], sendevntcolor))
+				# case: draw graph completely
+				else:
+					subsms[child.attrib['id']] = ini
+					g.subgraph(sg)
+					for out_edge in oE:
+						for propTrans in child: # propably transitions
+							if propTrans.tag[len(ns):] == "transition" and propTrans.attrib['event'] == child.attrib['id'] + out_edge[1]:
+								target = propTrans.attrib['target']
+								inEdges.append((out_edge[0], target, out_edge[1], sendevntcolor))
+								break
 			# case: parallel states
 			elif "parallel" in child.attrib:
 				print("draw parallel subgraph")
@@ -290,16 +320,20 @@ def iterateThroughNodes(root, graph):
 					elif each.tag[len(ns):] == "send":
 						outEdges.append((child.attrib['id'], each.attrib['event']))
 
+	# second: determine which edges remain and which ones will be replaced (because they contain cmp or sm states) 
 	actual_inEdges = []
 
 	for each in inEdges:
 		if each[1] in cmpstates:
 			actual_inEdges.append((each[0], cmpstates[each[1]], each[2], each[3]))
+		elif each[1] in subsms:
+			actual_inEdges.append((each[0], subsms[each[1]], each[2], each[3]))
 		else:
 			actual_inEdges.append(each)
 
 	inEdges = actual_inEdges
 
+	# third:
 	for each in inEdges:
 		g.edge(each[0], each[1], label=reduTransEvnt(each[2]), color=each[3])
 
@@ -321,7 +355,7 @@ def buildMiniSg(root, label=""):
 
 		Args:
 			root (Digraph.node): The root node from which this subgraph extends.
-			label (str): Used to label the subgraph.
+			label (str, optional): Used to label the subgraph.
 
 		Returns:
 			tuple(Digraph, list[edge]): A tuple containing:
@@ -399,7 +433,7 @@ def main():
 	sanityChecks()
 
 	# generate the main graph
-	(DG, edges) = readGraph(inputName)
+	(DG, edges, ini) = readGraph(inputName)
 
 	draw(DG)
 
