@@ -227,6 +227,11 @@ def readGraph(filename, level=-1, body=[], label="", graphname=""):
 	root = tree.getroot()
 	initial_state = root.attrib['initial']
 
+
+	if notlevel == -1:
+		for option in body:
+			g.body.append(option)
+
 	(g, oE, iE, subs) = iterateThroughNodes(root, g, level=level)
 
 	if label:
@@ -235,7 +240,7 @@ def readGraph(filename, level=-1, body=[], label="", graphname=""):
 		g.body.append("label=\"\nSM for " + filename + "\"")
 		g.body.append('fontsize=20')
 		g.node('Start', shape='Mdiamond')
-		
+
 		if initial_state in subs:
 			g.edge('Start', subs[initial_state])
 		else:
@@ -244,9 +249,6 @@ def readGraph(filename, level=-1, body=[], label="", graphname=""):
 		g.node('Finish', shape='Msquare')
 		for each in oE:
 			g.edge(each[0], 'Finish', label=each[1], color=detEdgeColor(each[1]), fontcolor=sendevntcolor)
-	else:
-		for each in body:
-			pass
 
 	return (g, oE, initial_state)
 
@@ -292,9 +294,8 @@ def iterateThroughNodes(root, graph, level=1):
 						inEdges.append((child.attrib['id'], each[1], each[2], detEdgeColor(each[2])))
 			# case: substatemachine in seperate .xml
 			elif "src" in child.attrib: #WIP
-				(sg, oE, ini) = readGraph(child.attrib['src'], level=level+1)
-				print(level, subst_recs)
-				# case: level too big, subsm will be reduced
+				(sg, oE, ini) = readGraph(child.attrib['src'], level=level+1, body=detSubBody(level))
+				# case: level too big, subsm will be reduced WIP
 				if level+1 >= subst_recs:
 					g.node(child.attrib['id'], style="filled", shape="doublecircle")
 					for out_edge in oE:
@@ -309,9 +310,15 @@ def iterateThroughNodes(root, graph, level=1):
 					g.subgraph(sg)
 					for out_edge in oE:
 						for propTrans in child: # propably transitions
-							if propTrans.tag[len(ns):] == "transition" and propTrans.attrib['event'] == child.attrib['id'] + out_edge[1]:
-								target = propTrans.attrib['target']
-								inEdges.append((out_edge[0], target, out_edge[1], sendevntcolor))
+							if propTrans.tag[len(ns):] == "transition" and propTrans.attrib['event'] == child.attrib['id'] + "." + out_edge[1]:
+								print(propTrans.attrib)
+								# case: sendevent
+								if "target" not in propTrans.attrib:
+									outEdges.append((out_edge[0], out_edge[1]))
+								# case: normal transition
+								else:
+									target = propTrans.attrib['target']
+									inEdges.append((out_edge[0], target, out_edge[1], sendevntcolor))
 								break
 			# case: parallel states
 			elif "parallel" in child.attrib:
@@ -344,7 +351,11 @@ def iterateThroughNodes(root, graph, level=1):
 
 	inEdges = actual_inEdges
 
-	# third:
+	# third: remove doubles (may occur because of conditions or naturally in OutEdges)
+	inEdges = sorted(inEdges, key=inEdges.index)
+	outEdges = sorted(outEdges, key=outEdges.index)
+
+	# fourth: actually add the edges to the graph
 	for each in inEdges:
 		g.edge(each[0], each[1], label=reduTransEvnt(each[2]), color=each[3])
 
@@ -422,7 +433,7 @@ def detSubBody(level):
 		Returns:
 			list[str]: The body of the subgraphs of the graph with the passed body.
 	"""
-	return body
+	return []
 
 def draw(graph):
 	"""Draws a given graph into according to the given configuration.
@@ -431,7 +442,6 @@ def draw(graph):
 			graph (Digraph): The graph that shall be rendered.
 	"""
 	graph.render(filename=gvname, cleanup=not savegv)
-	pass
 
 def main():
 	"""Main function of this programm. Will generate a graph based on the given arguments.
