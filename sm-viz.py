@@ -300,9 +300,14 @@ def iterateThroughNodes(root, graph, level=1):
 					g.node(child.attrib['id'], style="filled", shape="doublecircle")
 					for out_edge in oE:
 						for propTrans in child: # propably transitions
-							if propTrans.tag[len(ns):] == "transition" and propTrans.attrib['event'] == child.attrib['id'] + out_edge[1]:
-								target = propTrans.attrib['target']
-								inEdges.append((child.attrib['id'], target, out_edge[1], sendevntcolor))
+							if propTrans.tag[len(ns):] == "transition" and propTrans.attrib['event'] == child.attrib['id'] + "." + out_edge[1]:
+								if 'target' in propTrans.attrib:
+									target = propTrans.attrib['target']
+									inEdges.append((child.attrib['id'], target, out_edge[1], sendevntcolor))
+								else:
+									for sent_evnt in propTrans:
+										outEdges.append((child.attrib['id'], sent_evnt.attrib['event']))
+										break
 								break
 				# case: draw graph completely
 				else:
@@ -341,12 +346,12 @@ def iterateThroughNodes(root, graph, level=1):
 	actual_inEdges = []
 
 	for each in inEdges:
+		edg = [each[0], each[1], each[2], each[3]]
 		if each[1] in cmpstates:
-			actual_inEdges.append((each[0], cmpstates[each[1]], each[2], each[3]))
-		elif each[1] in subsms:
-			actual_inEdges.append((each[0], subsms[each[1]], each[2], each[3]))
-		else:
-			actual_inEdges.append(each)
+			edg[1] = cmpstates[each[1]]
+		if each[1] in subsms:
+			edg[1] = subsms[each[1]]
+		actual_inEdges.append((edg[0], edg[1], edg[2], edg[3]))
 
 	inEdges = actual_inEdges
 
@@ -438,7 +443,8 @@ def detSubBody(level):
 		body.append('style=filled')
 		body.append('color=grey')
 	else:
-		pass
+		body.append('style=filled')
+		body.append('color=white')
 
 	return body
 
