@@ -303,7 +303,8 @@ def iterateThroughNodes(root, graph, level=1):
 							if propTrans.tag[len(ns):] == "transition" and propTrans.attrib['event'] == child.attrib['id'] + "." + out_edge[1]:
 								if 'target' in propTrans.attrib:
 									target = propTrans.attrib['target']
-									inEdges.append((child.attrib['id'], target, out_edge[1], sendevntcolor))
+									eventName = out_edge[0][:out_edge[0].find(".")] + "." + out_edge[0]  + "." + out_edge[1]
+									inEdges.append((child.attrib['id'], target, eventName, sendevntcolor))
 								else:
 									for sent_evnt in propTrans:
 										outEdges.append((child.attrib['id'], sent_evnt.attrib['event']))
@@ -355,15 +356,27 @@ def iterateThroughNodes(root, graph, level=1):
 
 	inEdges = actual_inEdges
 
-	# third: remove doubles (may occur because of conditions or naturally in OutEdges)
-	inEdges = sorted(inEdges, key=inEdges.index)
-	outEdges = sorted(outEdges, key=outEdges.index)
+	# third: remove doubles (may occur because of conditions or naturally in outEdges)
+	inEdges = removeDoubles(inEdges)
+	outEdges = removeDoubles(outEdges, amount=2)
 
 	# fourth: actually add the edges to the graph
 	for each in inEdges:
 		g.edge(each[0], each[1], label=reduTransEvnt(each[2]), color=each[3])
 
 	return (g, outEdges, inEdges, subsms)
+
+def removeDoubles(ed, amount=4):
+	doubleless = []
+	for each in ed:
+		for every in doubleless:
+			if amount == 4 and each[0] == every[0] and each[1] == every[1] and each[2] == every[2] and each[3] == every[3]:
+			 	break
+			elif each[0] == every[0] and each[1] == every[1]:
+				break
+		else:
+			doubleless.append(each)
+	return doubleless
 
 def reduTransEvnt(event):
 	"""Reduces a given event so its skills name is removed.
