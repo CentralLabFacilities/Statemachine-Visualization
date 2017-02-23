@@ -228,7 +228,7 @@ def readGraph(filename, level=-1, body=[], label="", graphname=""):
 	initial_state = root.attrib['initial']
 
 
-	if notlevel == -1:
+	if not level == -1:
 		for option in body:
 			g.body.append(option)
 
@@ -294,7 +294,7 @@ def iterateThroughNodes(root, graph, level=1):
 						inEdges.append((child.attrib['id'], each[1], each[2], detEdgeColor(each[2])))
 			# case: substatemachine in seperate .xml
 			elif "src" in child.attrib: #WIP
-				(sg, oE, ini) = readGraph(child.attrib['src'], level=level+1, body=detSubBody(level))
+				(sg, oE, ini) = readGraph(child.attrib['src'], level=level+1, body=detSubBody(level), graphname="cluster_" + child.attrib['src'])
 				# case: level too big, subsm will be reduced WIP
 				if level+1 >= subst_recs:
 					g.node(child.attrib['id'], style="filled", shape="doublecircle")
@@ -311,8 +311,7 @@ def iterateThroughNodes(root, graph, level=1):
 					for out_edge in oE:
 						for propTrans in child: # propably transitions
 							if propTrans.tag[len(ns):] == "transition" and propTrans.attrib['event'] == child.attrib['id'] + "." + out_edge[1]:
-								print(propTrans.attrib)
-								# case: sendevent
+								# case: send-event
 								if "target" not in propTrans.attrib:
 									outEdges.append((out_edge[0], out_edge[1]))
 								# case: normal transition
@@ -433,7 +432,15 @@ def detSubBody(level):
 		Returns:
 			list[str]: The body of the subgraphs of the graph with the passed body.
 	"""
-	return []
+	level = level+1
+	body = []
+	if not level % 2:
+		body.append('style=filled')
+		body.append('color=grey')
+	else:
+		pass
+
+	return body
 
 def draw(graph):
 	"""Draws a given graph into according to the given configuration.
