@@ -5,7 +5,12 @@ import os.path
 import os
 
 # TODO's
-## readGraph and build_mini_sg need to return a tuple of the graph and a list of tuples which contain edges and node from which these edges derive
+## sourcing inside of sourced statemachnines does not always work, problem is the exact path
+### problem only occurs if subsms source another subsm in the same directory
+## adding datamodels and their usage in specific states
+## adding edges of sendevents in substate machines, that are not accounted for
+## parallel states are completely lacking
+
 
 """This is a little program written to visualize statemachines in scxml with the help of GraphViz. 
 
@@ -196,7 +201,7 @@ def sanityChecks():
 		print("The file \"" + inputName + "\" does not exist. Will now exit.\n")
 		exit()
 
-def readGraph(filename, level=-1, body=[], label="", graphname=""):
+def readGraph(filename, level=-1, body=[], label="", graphname="", pathprefix=""):
 	"""Reads a graph from a specified filename.
 
 		Args:
@@ -205,7 +210,8 @@ def readGraph(filename, level=-1, body=[], label="", graphname=""):
 				than subst_recs given at the start of the programm, this graph will be reduced to just one state (but will still have all edges).
 			body (list[str], optional): Used to set the style of the body of this graph. Contains of a list of str.
 			label (str, optional): Used to set the label of the graph.
-			graphname (str, optional): name of the graph which will be created. Needed only for clustering of subgraphs.
+			graphname (str, optional): Name of the graph which will be created. Needed only for clustering of subgraphs.
+			pathprefix (str, optional): If the .xml you want to source is located in another folder, you need to add that path here.
 
 		Returns:
 			tuple(Digraph, list[edge], str): A tuple containing:
@@ -223,7 +229,14 @@ def readGraph(filename, level=-1, body=[], label="", graphname=""):
 	g = Digraph(gname, engine=rengine, format=fmt)
 
 	# prepare xml tree
-	tree = ET.parse(filename)
+	lastslash = filename[::-1].find("/")
+	if lastslash == -1:
+		lastslash = lastslash + 1
+	fname = filename[-lastslash:]
+	if pathprefix:
+		fname = pathprefix + fname
+	print("Iterate durch nodes wird aufgerufen mit filename ", fname, " pathprefix ", pathprefix, " und lastslash ", lastslash)
+	tree = ET.parse(fname)
 	root = tree.getroot()
 	initial_state = root.attrib['initial']
 
@@ -232,7 +245,7 @@ def readGraph(filename, level=-1, body=[], label="", graphname=""):
 		for option in body:
 			g.body.append(option)
 
-	(g, oE, iE, subs) = iterateThroughNodes(root, g, level=level)
+	(g, oE, iE, subs) = iterateThroughNodes(root, g, level=level, prefix=pathprefix)
 
 	if label:
 		g.body.append('label = \"' + label + '\"')
@@ -252,13 +265,14 @@ def readGraph(filename, level=-1, body=[], label="", graphname=""):
 
 	return (g, oE, initial_state)
 
-def iterateThroughNodes(root, graph, level=1):
+def iterateThroughNodes(root, graph, level=1, prefix=""):
 	"""Iterates through the childnodes of the given rootnode. Adds all children to a given graph.
 
 		Args:
 			root (Digraph.node): The rootnode through which shall be iterated
 			graph (Digraph): The graph to which the nodes and edges will be added.
 			level (int, optional): The level of the graph. 
+			prefix (str, optional): The path of this graph.
 
 		Returns:
 			tuple(Digraph, list(outEdges), list(inEdges)): A tuple containing:
@@ -294,7 +308,12 @@ def iterateThroughNodes(root, graph, level=1):
 						inEdges.append((child.attrib['id'], each[1], each[2], detEdgeColor(each[2])))
 			# case: substatemachine in seperate .xml
 			elif "src" in child.attrib: #WIP
-				(sg, oE, ini) = readGraph(child.attrib['src'], level=level+1, body=detSubBody(level), graphname="cluster_" + child.attrib['src'])
+				src = child.attrib['src']
+				prefix_tmp = prefix
+				if src[::-1].find("/") > -1:
+					prefix_tmp = prefix + src[:-src[::-1].find("/")]
+				print("\n", "readgraph wird aufgerufen mit src ", src, " und pathprefix ", prefix_tmp, " aus ", root.attrib['initial'])
+				(sg, oE, ini) = readGraph(src, level=level+1, body=detSubBody(level), graphname="cluster_" + src, pathprefix=prefix_tmp)
 				# case: level too big, subsm will be reduced WIP
 				if level+1 >= subst_recs:
 					g.node(child.attrib['id'], style="filled", shape="doublecircle")
