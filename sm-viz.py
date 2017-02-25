@@ -294,13 +294,19 @@ def iterateThroughNodes(root, graph, level=1, prefix=""):
 		if child.tag.endswith("state"):
 			# case: compound state
 			if "initial" in child.attrib:
-				(sg, ed) = buildMiniSg(child, label=child.attrib['id'])
+				(sg, ed) = buildMiniSg(child, label=child.attrib['id'], prefix=prefix)
 				
 				if minisg:
 					cmpstates[child.attrib['id']] = child.attrib['initial']
 					g.subgraph(sg)
 					for each in ed:
-						inEdges.append((each[0], each[1], each[2], detEdgeColor(each[2])))
+						print(each)
+						# case inEdge
+						if len(each) == 4:
+							inEdges.append((each[0], each[1], each[2], detEdgeColor(each[2])))
+						# case OutEdge
+						else:
+							outEdges.append((each[0], each[1]))
 				else:
 					# make the node stand out visually, keep edges
 					g.node(child.attrib['id'], style="filled")
@@ -408,12 +414,13 @@ def reduTransEvnt(event):
 	"""
 	return event[event.find(".")+1:]
 
-def buildMiniSg(root, label=""):
+def buildMiniSg(root, label="", prefix=""):
 	"""Builds a subgraph from a specified root node.
 
 		Args:
 			root (Digraph.node): The root node from which this subgraph extends.
 			label (str, optional): Used to label the subgraph.
+			prefix (str, optional): Prefix of the directory in which this graph resides.
 
 		Returns:
 			tuple(Digraph, list[edge]): A tuple containing:
@@ -423,7 +430,7 @@ def buildMiniSg(root, label=""):
 	"""
 	sub = Digraph("cluster_" + label, engine=rengine, format=fmt)
 	tmp = Digraph("bla")
-	(tmp, oE, iE, _) = iterateThroughNodes(root, tmp)
+	(tmp, oE, iE, _) = iterateThroughNodes(root, tmp, prefix=prefix)
 	E = oE
 
 	sub.body.append("\tcolor=" + cmp_color)
