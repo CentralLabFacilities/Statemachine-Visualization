@@ -300,7 +300,6 @@ def iterateThroughNodes(root, graph, level=1, prefix=""):
 					cmpstates[child.attrib['id']] = child.attrib['initial']
 					g.subgraph(sg)
 					for each in ed:
-						print(each)
 						# case inEdge
 						if len(each) == 4:
 							inEdges.append((each[0], each[1], each[2], detEdgeColor(each[2])))
@@ -434,6 +433,7 @@ def buildMiniSg(root, label="", prefix=""):
 	E = oE
 
 	sub.body.append("\tcolor=" + cmp_color)
+	sub.body.append("\tstyle=\"\"")
 	sub.body.append("\tlabel = \"" + label + "\"")
 
 	insideNodes = []
