@@ -106,10 +106,11 @@ class Statemachine(object):
         doubleless = []
         for each in edges:
             for every in doubleless:
-                if len(each) == 4 and each[0] == every[0] and each[1] == every[1] and each[2] == every[2] and each[3] == \
-                        every[3]:
-                    break
-                elif each[0] == every[0] and each[1] == every[1]:
+                if each.start == every.start and \
+                                each.target == every.target and \
+                                each.color == every.color and \
+                                each.label == every.label and \
+                                each.fontcolor == every.fontcolor:
                     break
             else:
                 doubleless.append(each)
@@ -168,6 +169,7 @@ class Statemachine(object):
 
 class Edge(object):
     """docstring for Edge"""
+
     def __init__(self, start="", target="", color="black", label="", fontcolor=""):
         super(Edge, self).__init__()
         self.start = start
@@ -175,7 +177,7 @@ class Edge(object):
         self.color = color
         self.label = label
         self.fontcolor = fontcolor
-    
+
     start = ""
 
     target = ""
