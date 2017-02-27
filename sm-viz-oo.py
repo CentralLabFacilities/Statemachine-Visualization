@@ -25,6 +25,8 @@ class Statemachine(object):
     outEdges = []
 
     substatemachines = {}
+    """Saved as name:initialstate
+    """
 
     graph = 0
 
@@ -134,7 +136,20 @@ class Statemachine(object):
         pass
 
     def findNodesWithoutNextNode(self):
-        return []
+        nodes = []
+        targets = []
+        startnodes = []
+        for each in inEdges:
+            if each.target not in targets:
+                targets.append(each.target)
+                startnodes.append(each.start)
+        for each in outEdges:
+            if each.start not in startnodes:
+                startnodes.append(each.start)
+        for each in targets:
+            if each not in startnodes:
+                nodes.append(each)
+        return nodes
 
     def readGraph(self):
         """Reads a graph from a specified filename.
@@ -147,3 +162,26 @@ class Statemachine(object):
         self.initialstate = root.attrib['initial']
 
         self.iterateThroughNodes()
+
+    def addEdge(edge):
+    	self.graph.edge(edge.start, edge.target, color=edge.color, label=edge.label, fontcolor=edge.fontcolor)
+
+class Edge(object):
+    """docstring for Edge"""
+    def __init__(self, start="", target="", color="", label="", fontcolor=""):
+        super(Edge, self).__init__()
+        self.start = start
+        self.target = target
+        self.color = color
+        self.label = label
+        self.fontcolor = fontcolor
+    
+    start = ""
+
+    target = ""
+
+    color = ""
+
+    label = ""
+
+    fontcolor = ""
