@@ -1,8 +1,5 @@
 import xml.etree.ElementTree as ET
 from graphviz import Digraph
-import sys
-import os.path
-import os
 from init import *
 
 """Object oriented statemachine renderer.
@@ -77,13 +74,15 @@ class Statemachine(object):
                                 fontcolor=sendevntcolor)
             for each in self.translessnodes:
                 self.graph.edge(each, 'Finish', label='unaccounted', color='deeppink', fontcolor='deeppink')
+        else:
+            for each in self.body:
+                self.graph.append(each)
 
         self.inEdges = self.removeDoubles(self.inEdges)
         self.outEdges = self.removeDoubles(self.outEdges)
 
-        # fourth: actually add the edges to the graph
         for each in self.inEdges:
-            g.edge(each[0], each[1], label=self.reduTransEvnt(each[2]), color=each[3])
+            self.addEdge(each)
 
     def detEdgeColor(self, event):
         """Determins the color of a edge, given a specific event.
@@ -139,11 +138,11 @@ class Statemachine(object):
         nodes = []
         targets = []
         startnodes = []
-        for each in inEdges:
+        for each in self.inEdges:
             if each.target not in targets:
                 targets.append(each.target)
                 startnodes.append(each.start)
-        for each in outEdges:
+        for each in self.outEdges:
             if each.start not in startnodes:
                 startnodes.append(each.start)
         for each in targets:
@@ -163,12 +162,13 @@ class Statemachine(object):
 
         self.iterateThroughNodes()
 
-    def addEdge(edge):
-    	self.graph.edge(edge.start, edge.target, color=edge.color, label=edge.label, fontcolor=edge.fontcolor)
+    def addEdge(self, edge):
+        self.graph.edge(edge.start, edge.target, color=edge.color, label=edge.label, fontcolor=edge.fontcolor)
+
 
 class Edge(object):
     """docstring for Edge"""
-    def __init__(self, start="", target="", color="", label="", fontcolor=""):
+    def __init__(self, start="", target="", color="black", label="", fontcolor=""):
         super(Edge, self).__init__()
         self.start = start
         self.target = target
