@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 from graphviz import Digraph
 from init import *
+import sys
 
 """Object oriented statemachine renderer.
 """
@@ -9,7 +10,7 @@ from init import *
 class Statemachine(object):
     """docstring for Statemachine"""
 
-    def __init__(self, path, level, father=0, filename="", graphname=""):
+    def __init__(self, path="", level=0, father=0, filename="", graphname=""):
         super(Statemachine, self).__init__()
         self.pathprefix = path
         self.level = level
@@ -45,41 +46,50 @@ class Statemachine(object):
 
     possiblereturnvalues = []
 
+    draw = True
+
     def addbody(self):
-        if not self.level == -1:
+        if self.level:
             for option in self.body:
                 self.graph.body.append(option)
 
     def drawiteravly(self):
         for each in self.substatemachines:
             self.substatemachines[each].drawiteravly()
-        self.drawGraph()
+        if self.draw:
+            self.drawGraph()
 
     def drawGraph(self):
+        self.inEdges = self.removeDoubles(self.inEdges)
+        self.outEdges = self.removeDoubles(self.outEdges)
         if self.label:
             self.graph.body.append('label = \"' + self.label + '\"')
-        if self.level == -1:
+        if not self.level:
             self.graph.body.append("label=\"\nSM for " + self.filename + "\"")
             self.graph.body.append('fontsize=20')
             self.graph.node('Start', shape='Mdiamond')
 
+            tmp = Edge(start='Start')
             if self.initialstate in self.substatemachines:
-                self.graph.edge('Start', self.substatemachines[self.initialstate])
+                tmp.target = self.substatemachines[self.initialstate]
             else:
-                self.graph.edge('Start', self.initialstate)
+                tmp.target = self.initialstate
+            self.addEdge(tmp)
 
             self.graph.node('Finish', shape='Msquare')
             for each in self.outEdges:
-                self.graph.edge(each[0], 'Finish', label=each[1], color=self.detEdgeColor(each[1]),
-                                fontcolor=sendevntcolor)
+                each.target = 'Finish'
+                each.fontcolor = sendevntcolor
+                self.addEdge(each)
             for each in self.translessnodes:
-                self.graph.edge(each, 'Finish', label='unaccounted', color='deeppink', fontcolor='deeppink')
+                each.target = 'Finish'
+                each.label = 'unaccounted'
+                each.color = 'deeppink'
+                each.fontcolor = 'deeppink'
+                self.addEdge(each)
         else:
             for each in self.body:
-                self.graph.append(each)
-
-        self.inEdges = self.removeDoubles(self.inEdges)
-        self.outEdges = self.removeDoubles(self.outEdges)
+                self.graph.body.append(each)
 
         for each in self.inEdges:
             self.addEdge(each)
@@ -100,6 +110,22 @@ class Statemachine(object):
                 edgecolor = self.colordict[each]
                 break
         return edgecolor
+
+    def splitInPathAndFilename(self, together):
+        """Splits a string into a Path and a filename
+
+        Args:
+            together: complete filename w/ path
+
+        Returns:
+            A tuple containing the path of the file (first element) and its name (second element)
+
+        Example:
+            splitInPathAndFilename("bla/blubb") = ('bla/', 'blubb')
+
+        """
+        lastslash = -together[::-1].find('/')
+        return together[:lastslash], together[lastslash:]
 
     @staticmethod
     def removeDoubles(edges):
@@ -187,3 +213,22 @@ class Edge(object):
     label = ""
 
     fontcolor = ""
+
+#  If this script is executed in itself, run the main method (aka generate the graph).
+if __name__ == '__main__':
+
+    # initialize the switches and stuff
+    handleArguments(sys.argv)
+
+    # check the sanity of the given arguments
+    sanityChecks()
+
+    p, fn = Statemachine.splitInPathAndFilename(inputName)
+
+    sm = Statemachine(path=p, filename=fn)
+
+    if not gvname:
+        os.rename(inputName[:-4] + ".gv." + fmt, inputName[:-4] + "." + fmt)
+    else:
+        os.rename(gvname + "." + fmt, inputName[:-4] + "." + fmt)
+    exit()
