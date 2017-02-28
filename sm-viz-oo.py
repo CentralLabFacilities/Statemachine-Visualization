@@ -8,7 +8,7 @@ import sys
 
 
 class Statemachine(object):
-    """docstring for Statemachine"""
+    """Main class for all Statemachines"""
 
     def __init__(self, path="", level=0, father=0, filename="", graphname=""):
         super(Statemachine, self).__init__()
@@ -19,34 +19,62 @@ class Statemachine(object):
         self.graphname = graphname
 
     inEdges = []
+    """list(Edge): Contains all the edges inside the graph.
+    """
 
     outEdges = []
+    """list(Edge): Contains all the edges leading out of the graph.
+    """
 
     substatemachines = {}
-    """Saved as name:initialstate
+    """dict(str, str): Contains all the substatemachines of this statemachine. Saved as name:initialstate
     """
 
     graph = 0
+    """Digraph: The graphviz graph resembling this statemachine.
+    """
 
     body = []
+    """list(str): Contains all the body options this statemachines graph will use.
+    """
 
     level = 0
+    """int: Describes this statemachines level. If a statemachine gets sourced its level will be greater than its parents one.
+    """
 
     pathprefix = ""
-
-    father = 0
+    """str: The path in which the file which will be read in lies.
+    """
 
     filename = ""
+    """str: The name of the file which will be read in. See pathprefix.
+    """
+
+    father = 0
+    """Statemachine: The parent of this statemachine. Will only be not 0 if it is sourced by the main Statemachine.
+    """
 
     initialstate = ""
+    """str: The initial state of this statemachine.
+    """
 
     label = ""
+    """str: The label with which this statemachine will be visualized.
+    """
 
     translessnodes = []  # nodes without transitionevents
+    """list(str): A list containing all nodes which have no transition. These nodes will either be the last ones in a \
+        statemachine or ones where the statemachines creator unintentionally and mistakenly left out transitions. The \
+        later case is to be avoided and thus highlighted in the visualised graph.
+    """
 
     possiblereturnvalues = []
+    """list(str): A list containing all possible return values of this statemachine.
+    """
 
     draw = True
+    """bool: Defines whether this statemachines graph will be drawn or not.
+    """
 
     def addbody(self):
         if self.level:
@@ -190,13 +218,30 @@ class Statemachine(object):
         self.iterateThroughNodes()
 
     def addEdge(self, edge):
+        """Will add an Edge to this Graph.
+
+        Args:
+            edge: The Edge which will be added.
+
+        Returns:
+            Nothing. But will modify the graph of this statemachine.
+        """
         self.graph.edge(edge.start, edge.target, color=edge.color, label=edge.label, fontcolor=edge.fontcolor)
 
 
 class Edge(object):
-    """docstring for Edge"""
+    """Class to represent Edge appropriately"""
 
-    def __init__(self, start="", target="", color="black", label="", fontcolor=""):
+    def __init__(self, start="", target="", color="black", label="", fontcolor="black"):
+        """Contructor of the Edge class.
+
+        Args:
+            start (str, optional): The node from which this edge starts.
+            target (str, optional): The node to which this edge leads.
+            color (str, optional): The color of the edge.
+            label (str, optional): The writing which will appear near this edge.
+            fontcolor (str, optional): The color in which the label will appear.
+        """
         super(Edge, self).__init__()
         self.start = start
         self.target = target
@@ -205,14 +250,24 @@ class Edge(object):
         self.fontcolor = fontcolor
 
     start = ""
+    """str: The node from which this edge starts.
+    """
 
     target = ""
+    """str: The node to which this edge leads.
+    """
 
     color = ""
+    """str: The color of the edge.
+    """
 
     label = ""
+    """str: The writing which will appear near this edge.
+    """
 
     fontcolor = ""
+    """str: The color in which the label will appear.
+    """
 
 #  If this script is executed in itself, run the main method (aka generate the graph).
 if __name__ == '__main__':
