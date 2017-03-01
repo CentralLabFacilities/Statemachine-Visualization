@@ -96,3 +96,4 @@ ENV/
 
 # specific files
 test.py
+.idea/

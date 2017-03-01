@@ -159,9 +159,12 @@ class Statemachine(object):
 
         Example:
             splitInPathAndFilename("bla/blubb") = ('bla/', 'blubb')
+            splitInPathAndFilename("blubb") = ('', 'blubb')
 
         """
         lastslash = -together[::-1].find('/')
+        if lastslash == 1:
+            return "", together
         return together[:lastslash], together[lastslash:]
 
     @staticmethod
@@ -204,27 +207,26 @@ class Statemachine(object):
         """
         for node in self.rootnode:
             if node.tag.endwith("state"):
-            	# case: compound state
+                # case: compound state
                 if "initial" in node.attrib:
-                    handleCmpState(node)
+                    self.handleCmpState(node)
                 # case: sourcing of another xml file
                 elif "src" in node.attrib:
-                    handleSource(node)
+                    self.handleSource(node)
                 # case: parallel state
                 elif "parallel" in node.attrib:
-                    handleParallel(node)
+                    self.handleParallel(node)
                 # case: normal node
                 else:
                     for each in node:
-                    	# unbearbeitet
                         if each.tag[len(ns):] == "transition":
                             # case: regular state transition
                             if "target" in each.attrib:
-                            	ed = Edge()
-                            	ed.start = node.attrib['id']
-                            	ed.target = each.attrib['target']
-                            	ed.label = reduTransEvnt(each.attrib['event'])
-                            	ed.color = detEdgeColor(each.attrib['event'])
+                                ed = Edge()
+                                ed.start = node.attrib['id']
+                                ed.target = each.attrib['target']
+                                ed.label = self.reduTransEvnt(each.attrib['event'])
+                                ed.color = self.detEdgeColor(each.attrib['event'])
                                 self.inEdges.append(ed)
                             # case: send event transition
                             else:
@@ -238,8 +240,7 @@ class Statemachine(object):
                             ed = Edge()
                             ed.start = node.attrib['id']
                             ed.label = each.attrib['event']
-                            outEdges.append(ed)
-
+                            self.outEdges.append(ed)
 
     def handleCmpState(self, node):
         pass
@@ -248,7 +249,7 @@ class Statemachine(object):
         pass
 
     def handleSource(self, node):
-        pass
+        src = node.attrib['src']
 
     def findNodesWithoutNextNode(self):
         nodes = []
@@ -330,7 +331,8 @@ class Edge(object):
     """str: The color in which the label will appear.
     """
 
-#  If this script is executed in itself, run the main method (aka generate the graph).
+
+# If this script is executed in itself, run the main method (aka generate the graph).
 if __name__ == '__main__':
 
     # initialize the switches and stuff
