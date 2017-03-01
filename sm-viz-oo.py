@@ -206,13 +206,13 @@ class Statemachine(object):
             if node.tag.endwith("state"):
             	# case: compound state
                 if "initial" in node.attrib:
-                    handleCmpState()
+                    handleCmpState(node)
                 # case: sourcing of another xml file
                 elif "src" in node.attrib:
-                    handleSource()
+                    handleSource(node)
                 # case: parallel state
                 elif "parallel" in node.attrib:
-                    handleParallel()
+                    handleParallel(node)
                 # case: normal node
                 else:
                     for each in node:
@@ -241,13 +241,13 @@ class Statemachine(object):
                             outEdges.append(ed)
 
 
-    def handleCmpState(self):
+    def handleCmpState(self, node):
         pass
 
-    def handleParallel(self):
+    def handleParallel(self, node):
         pass
 
-    def handleSource(self):
+    def handleSource(self, node):
         pass
 
     def findNodesWithoutNextNode(self):
