@@ -77,11 +77,15 @@ class Statemachine(object):
     """
 
     def addbody(self):
+        """Will add all the options in body to this statemachines graph.
+        """
         if self.level:
             for option in self.body:
                 self.graph.body.append(option)
 
     def drawiteravly(self):
+        """Will draw first all graphs of the substatemachines of this statemachine (recursively) and then this statemachines graph.
+        """
         for each in self.substatemachines:
             self.substatemachines[each].drawiteravly()
         if self.draw:
@@ -143,7 +147,7 @@ class Statemachine(object):
         """Splits a string into a Path and a filename
 
         Args:
-            together: complete filename w/ path
+            together (str): complete filename w/ path
 
         Returns:
             A tuple containing the path of the file (first element) and its name (second element)
@@ -157,6 +161,14 @@ class Statemachine(object):
 
     @staticmethod
     def removeDoubles(edges):
+        """Will remove all doubles in the specified list of edges so that each element will be unique.
+        Args:
+            edges (list(Edge)): The list of edges of which doubles are to be deleted.
+
+        Returns: 
+            list(Edge): A list of edges containing all the unique elements of the input.
+
+        """
         doubleless = []
         for each in edges:
             for every in doubleless:
@@ -206,7 +218,7 @@ class Statemachine(object):
         return nodes
 
     def readGraph(self):
-        """Reads a graph from a specified filename.
+        """Reads a graph from a specified filename. Will initialize this statemachines graph as well as its initial state and then call iterateThroughNodes.
         """
 
         self.graph = Digraph(self.graphname, engine=rengine, format=fmt)
