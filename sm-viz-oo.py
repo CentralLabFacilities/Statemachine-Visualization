@@ -10,13 +10,14 @@ import sys
 class Statemachine(object):
     """Main class for all Statemachines"""
 
-    def __init__(self, path="", level=0, father=0, filename="", graphname=""):
+    def __init__(self, path="", level=0, father=0, filename="", graphname="", rootnode=0):
         super(Statemachine, self).__init__()
         self.pathprefix = path
         self.level = level
         self.father = father
         self.filename = filename
         self.graphname = graphname
+        self.rootnode = rootnode
 
     inEdges = []
     """list(Edge): Contains all the edges inside the graph.
@@ -74,6 +75,10 @@ class Statemachine(object):
 
     draw = True
     """bool: Defines whether this statemachines graph will be drawn or not.
+    """
+
+    rootnode = 0
+    """Some kind of ElementTree structure. The root node of this statemachine.
     """
 
     def addbody(self):
@@ -196,9 +201,53 @@ class Statemachine(object):
 
     def iterateThroughNodes(self):
         """
-
-        :return:
         """
+        for node in self.rootnode:
+            if node.tag.endwith("state"):
+            	# case: compound state
+                if "initial" in node.attrib:
+                    handleCmpState()
+                # case: sourcing of another xml file
+                elif "src" in node.attrib:
+                    handleSource()
+                # case: parallel state
+                elif "parallel" in node.attrib:
+                    handleParallel()
+                # case: normal node
+                else:
+                    for each in node:
+                    	# unbearbeitet
+                        if each.tag[len(ns):] == "transition":
+                            # case: regular state transition
+                            if "target" in each.attrib:
+                            	ed = Edge()
+                            	ed.start = node.attrib['id']
+                            	ed.target = each.attrib['target']
+                            	ed.label = reduTransEvnt(each.attrib['event'])
+                            	ed.color = detEdgeColor(each.attrib['event'])
+                                self.inEdges.append(ed)
+                            # case: send event transition
+                            else:
+                                for every in each:
+                                    if every.tag[len(ns):] == "send":
+                                        ed = Edge()
+                                        ed.start = node.attrib['id']
+                                        ed.label = every.attrib['event']
+                                        self.outEdges.append(ed)
+                        elif each.tag[len(ns):] == "send":
+                            ed = Edge()
+                            ed.start = node.attrib['id']
+                            ed.label = each.attrib['event']
+                            outEdges.append(ed)
+
+
+    def handleCmpState(self):
+        pass
+
+    def handleParallel(self):
+        pass
+
+    def handleSource(self):
         pass
 
     def findNodesWithoutNextNode(self):
@@ -224,8 +273,8 @@ class Statemachine(object):
         self.graph = Digraph(self.graphname, engine=rengine, format=fmt)
 
         tree = ET.parse(self.filename)
-        root = tree.getroot()
-        self.initialstate = root.attrib['initial']
+        self.rootnode = tree.getroot()
+        self.initialstate = self.rootnode.attrib['initial']
 
         self.iterateThroughNodes()
 
