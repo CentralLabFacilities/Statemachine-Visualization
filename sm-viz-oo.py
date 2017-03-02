@@ -27,11 +27,11 @@ class Statemachine(object):
     """
 
     inEdges = []
-    """list(Edge): Contains all the edges inside the graph.
+    """list[Edge]: Contains all the edges inside the graph.
     """
 
     outEdges = []
-    """list(Edge): Contains all the edges leading out of the graph.
+    """list[Edge]: Contains all the edges leading out of the graph.
     """
 
     substatemachines = {}
@@ -232,7 +232,39 @@ class Statemachine(object):
                     self.handleNormalState(node)
 
     def handleCmpState(self, node):
-        pass
+        cmpsm = Statemachine(init=self.init, path=self.pathprefix)
+        cmpsm.father = self
+        cmpsm.level = self.level + 1
+        cmpsm.rootnode = node
+        cmpsm.graphname = 'cluster_' + node.attrib['id']
+        cmpsm.graph = Digraph(cmpsm.graphname, engine=self.init.rengine, format=self.init.fmt)
+        cmpsm.initialstate = node.attrib['initial']
+
+        cmpsm.iterateThroughNodes()
+
+        nodesInCmpsm = []
+        for each in node:
+            nodesInCmpsm.append(each.attrib['id'])
+
+        for each in cmpsm.inEdges:
+            if each.target not in nodesInCmpsm:
+                cmpsm.inEdges.remove(each)
+                cmpsm.outEdges.append(each)
+
+        for each in cmpsm.outEdges:
+            if self.init.exclsubst:
+                each.start = node.attrib['id']
+                self.inEdges.append(each)
+            else:
+                pass #TODO
+
+        if self.init.exclsubst:
+            self.graph.node(node.attrib['id'], style="filled")
+        else:
+            pass #TODO
+
+
+
 
     def handleParallel(self, node):
         pass
