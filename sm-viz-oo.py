@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 from graphviz import Digraph
-from init import *
+from init import SMinit
 import sys
 
 """Object oriented statemachine renderer.
@@ -10,7 +10,7 @@ import sys
 class Statemachine(object):
     """Main class for all Statemachines"""
 
-    def __init__(self, path="", level=0, father=0, filename="", graphname="", rootnode=0):
+    def __init__(self, path="", level=0, father=0, filename="", graphname="", rootnode=0, init=0):
         super(Statemachine, self).__init__()
         self.pathprefix = path
         self.level = level
@@ -18,6 +18,11 @@ class Statemachine(object):
         self.filename = filename
         self.graphname = graphname
         self.rootnode = rootnode
+        self.init = init
+
+    init = 0
+    """SMinit: contains all the information given by initialisation.
+    """
 
     inEdges = []
     """list(Edge): Contains all the edges inside the graph.
@@ -116,7 +121,7 @@ class Statemachine(object):
             self.graph.node('Finish', shape='Msquare')
             for each in self.outEdges:
                 each.target = 'Finish'
-                each.fontcolor = sendevntcolor
+                each.fontcolor = self.init.sendevntcolor
                 self.addEdge(each)
             for each in self.translessnodes:
                 each.target = 'Finish'
@@ -142,13 +147,14 @@ class Statemachine(object):
 
         """
         edgecolor = 'black'
-        for each in self.colordict:
+        for each in self.init.colordict:
             if event.__contains__(each):
-                edgecolor = self.colordict[each]
+                edgecolor = self.init.colordict[each]
                 break
         return edgecolor
 
-    def splitInPathAndFilename(self, together):
+    @staticmethod
+    def splitInPathAndFilename(together):
         # type: (str) -> (str, str)
         """Splits a string into a Path and a filename
 
@@ -232,7 +238,7 @@ class Statemachine(object):
     def handleSource(self, node):
         subpath, newfile = self.splitInPathAndFilename(node.attrib['src'])
         completepath = self.pathprefix + subpath
-        newsm = Statemachine(completepath, newfile)
+        newsm = Statemachine(path=completepath, filename=newfile, init=self.init)
         newsm.father = self
         newsm.graphname = 'cluster_' + newfile
         newsm.level = self.level + 1
@@ -270,7 +276,7 @@ class Statemachine(object):
                             ed.start = node.attrib['id']
                             ed.target = target
                             ed.label = self.reduTransEvnt(eventName)
-                            ed.color = sendevntcolor
+                            ed.color = self.init.sendevntcolor
                             self.inEdges.append(ed)
                         else:
                             for sent_evnt in propTrans:
@@ -329,7 +335,7 @@ class Statemachine(object):
         """Reads a graph from a specified filename. Will initialize this statemachines graph as well as its initial state and then call iterateThroughNodes.
         """
 
-        self.graph = Digraph(self.graphname, engine=rengine, format=fmt)
+        self.graph = Digraph(self.graphname, engine=self.init.rengine, format=self.init.fmt)
 
         tree = ET.parse(self.filename)
         self.rootnode = tree.getroot()
@@ -352,7 +358,7 @@ class Statemachine(object):
 class Edge(object):
     """Class to represent Edge appropriately"""
 
-    def __init__(self, start='', target="", color="black", label="", fontcolor="black"):
+    def __init__(self, start='', target='', color='black', label='', fontcolor='black'):
         """Contructor of the Edge class.
 
         Args:
@@ -369,29 +375,33 @@ class Edge(object):
         self.label = label
         self.fontcolor = fontcolor
 
-    start = ""
+    start = ''
     """str: The node from which this edge starts.
     """
 
-    target = ""
+    target = ''
     """str: The node to which this edge leads.
     """
 
-    color = ""
+    color = ''
     """str: The color of the edge.
     """
 
-    label = ""
+    label = ''
     """str: The writing which will appear near this edge.
     """
 
-    fontcolor = ""
+    fontcolor = ''
     """str: The color in which the label will appear.
     """
 
 
 # If this script is executed in itself, run the main method (aka generate the graph).
 if __name__ == '__main__':
+
+	init = SMinit()
+	fmt = init.fmt
+	inputName = init.inputName
 
     # initialize the switches and stuff
     handleArguments(sys.argv)
@@ -401,10 +411,12 @@ if __name__ == '__main__':
 
     p, fn = Statemachine.splitInPathAndFilename(inputName)
 
-    sm = Statemachine(path=p, filename=fn)
+    print(inputName)
+
+    sm = Statemachine(path=p, filename=fn, init=init)
 
     if not gvname:
-        os.rename(inputName[:-4] + ".gv." + fmt, inputName[:-4] + "." + fmt)
+        os.rename(inputName[:-4] + '.gv.' + fmt, inputName[:-4] + '.' + fmt)
     else:
-        os.rename(gvname + "." + fmt, inputName[:-4] + "." + fmt)
+        os.rename(init.gvname + '.' + fmt, inputName[:-4] + '.' + fmt)
     exit()
