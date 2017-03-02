@@ -43,11 +43,11 @@ class Statemachine(object):
     """int: Describes this statemachines level. If a statemachine gets sourced its level will be greater than its parents one.
     """
 
-    pathprefix = ""
+    pathprefix = ''
     """str: The path in which the file which will be read in lies.
     """
 
-    filename = ""
+    filename = ''
     """str: The name of the file which will be read in. See pathprefix.
     """
 
@@ -55,11 +55,11 @@ class Statemachine(object):
     """Statemachine: The parent of this statemachine. Will only be not 0 if it is sourced by the main Statemachine.
     """
 
-    initialstate = ""
+    initialstate = ''
     """str: The initial state of this statemachine.
     """
 
-    label = ""
+    label = ''
     """str: The label with which this statemachine will be visualized.
     """
 
@@ -102,7 +102,7 @@ class Statemachine(object):
         if self.label:
             self.graph.body.append('label = \"' + self.label + '\"')
         if not self.level:
-            self.graph.body.append("label=\"\nSM for " + self.filename + "\"")
+            self.graph.body.append('label=\"\nSM for ' + self.filename + '\"')
             self.graph.body.append('fontsize=20')
             self.graph.node('Start', shape='Mdiamond')
 
@@ -141,7 +141,7 @@ class Statemachine(object):
                 str: A string stating the color of the edge. EG: red, blue, green etc
 
         """
-        edgecolor = "black"
+        edgecolor = 'black'
         for each in self.colordict:
             if event.__contains__(each):
                 edgecolor = self.colordict[each]
@@ -149,6 +149,7 @@ class Statemachine(object):
         return edgecolor
 
     def splitInPathAndFilename(self, together):
+        # type: (str) -> (str, str)
         """Splits a string into a Path and a filename
 
         Args:
@@ -158,17 +159,18 @@ class Statemachine(object):
             A tuple containing the path of the file (first element) and its name (second element)
 
         Example:
-            splitInPathAndFilename("bla/blubb") = ('bla/', 'blubb')
-            splitInPathAndFilename("blubb") = ('', 'blubb')
+            splitInPathAndFilename('bla/blubb') = ('bla/', 'blubb')
+            splitInPathAndFilename('blubb') = ('', 'blubb')
 
         """
         lastslash = -together[::-1].find('/')
         if lastslash == 1:
-            return "", together
+            return '', together
         return together[:lastslash], together[lastslash:]
 
     @staticmethod
     def removeDoubles(edges):
+        # type: (list[Edge]) -> list[Edge]
         """Will remove all doubles in the specified list of edges so that each element will be unique.
         Args:
             edges (list(Edge)): The list of edges of which doubles are to be deleted.
@@ -192,6 +194,7 @@ class Statemachine(object):
 
     @staticmethod
     def reduTransEvnt(event):
+        # type: (str) -> str
         """Reduces a given event so its skills name is removed.
 
             Args:
@@ -200,47 +203,25 @@ class Statemachine(object):
             Returns:
                 str: The event without its skills name.
         """
-        return event[event.find(".") + 1:]
+        return event[event.find('.') + 1:]
 
     def iterateThroughNodes(self):
         """
         """
         for node in self.rootnode:
-            if node.tag.endwith("state"):
+            if node.tag.endwith('state'):
                 # case: compound state
-                if "initial" in node.attrib:
+                if 'initial' in node.attrib:
                     self.handleCmpState(node)
                 # case: sourcing of another xml file
-                elif "src" in node.attrib:
+                elif 'src' in node.attrib:
                     self.handleSource(node)
                 # case: parallel state
-                elif "parallel" in node.attrib:
+                elif 'parallel' in node.attrib:
                     self.handleParallel(node)
                 # case: normal node
                 else:
-                    for each in node:
-                        if each.tag[len(ns):] == "transition":
-                            # case: regular state transition
-                            if "target" in each.attrib:
-                                ed = Edge()
-                                ed.start = node.attrib['id']
-                                ed.target = each.attrib['target']
-                                ed.label = self.reduTransEvnt(each.attrib['event'])
-                                ed.color = self.detEdgeColor(each.attrib['event'])
-                                self.inEdges.append(ed)
-                            # case: send event transition
-                            else:
-                                for every in each:
-                                    if every.tag[len(ns):] == "send":
-                                        ed = Edge()
-                                        ed.start = node.attrib['id']
-                                        ed.label = every.attrib['event']
-                                        self.outEdges.append(ed)
-                        elif each.tag[len(ns):] == "send":
-                            ed = Edge()
-                            ed.start = node.attrib['id']
-                            ed.label = each.attrib['event']
-                            self.outEdges.append(ed)
+                    self.handleNormalState(node)
 
     def handleCmpState(self, node):
         pass
@@ -249,7 +230,84 @@ class Statemachine(object):
         pass
 
     def handleSource(self, node):
-        src = node.attrib['src']
+        subpath, newfile = self.splitInPathAndFilename(node.attrib['src'])
+        completepath = self.pathprefix + subpath
+        newsm = Statemachine(completepath, newfile)
+        newsm.father = self
+        newsm.graphname = 'cluster_' + newfile
+        newsm.level = self.level + 1
+        newsm.label = newfile
+        if self.level + 1 >= substrecs:
+            newsm.draw = False
+        newsm.readGraph()
+        self.substatemachines[node.attrib['src']] = newsm.initialstate
+        # case: complete subsm will get rendered
+        if newsm.draw:
+            self.graph.subgraph(newsm.graph)
+            for out_edge in newsm.outEdges:
+                for propTrans in node:  # propably transitions
+                    if propTrans.tag[len(ns):] == 'transition' and propTrans.attrib['event'] == node.attrib['id'] + '.' + out_edge.label:
+                        # case: send-event
+                        if 'target' not in propTrans.attrib:
+                            self.outEdges.append(out_edge)
+                        # case: normal transition
+                        else:
+                            out_edge.target = propTrans.attrib['target']
+                            out_edge.color = sendevntcolor
+                            self.inEdges.append(out_edge)
+                        break
+        # case: subsm will be reduced to a single node
+        else:
+            self.graph.node(node.attrib['id'], style='filled', shape='doublecircle')
+            for out_edge in newsm.outEdges:
+                for propTrans in node:  # propably transitions
+                    if propTrans.tag[len(ns):] == 'transition' and propTrans.attrib['event'] == node.attrib['id'] + '.'\
+                            + out_edge.label:
+                        if 'target' in propTrans.attrib:
+                            target = propTrans.attrib['target']
+                            eventName = out_edge.start[:out_edge.start.find('.')] + '.' + out_edge.start + '.' + out_edge.label
+                            ed = Edge()
+                            ed.start = node.attrib['id']
+                            ed.target = target
+                            ed.label = self.reduTransEvnt(eventName)
+                            ed.color = sendevntcolor
+                            self.inEdges.append(ed)
+                        else:
+                            for sent_evnt in propTrans:
+                                ed = Edge()
+                                ed.start = node.attrib['id']
+                                ed.label = sent_evnt.attrib['event']
+                                self.outEdges.append(ed)
+                                break
+                        break
+
+
+
+
+    def handleNormalState(self, node):
+        for each in node:
+            if each.tag[len(ns):] == 'transition':
+                # case: regular state transition
+                if 'target' in each.attrib:
+                    ed = Edge()
+                    ed.start = node.attrib['id']
+                    ed.target = each.attrib['target']
+                    ed.label = self.reduTransEvnt(each.attrib['event'])
+                    ed.color = self.detEdgeColor(each.attrib['event'])
+                    self.inEdges.append(ed)
+                # case: send event transition
+                else:
+                    for every in each:
+                        if every.tag[len(ns):] == 'send':
+                            ed = Edge()
+                            ed.start = node.attrib['id']
+                            ed.label = every.attrib['event']
+                            self.outEdges.append(ed)
+            elif each.tag[len(ns):] == 'send':
+                ed = Edge()
+                ed.start = node.attrib['id']
+                ed.label = each.attrib['event']
+                self.outEdges.append(ed)
 
     def findNodesWithoutNextNode(self):
         nodes = []
@@ -294,7 +352,7 @@ class Statemachine(object):
 class Edge(object):
     """Class to represent Edge appropriately"""
 
-    def __init__(self, start="", target="", color="black", label="", fontcolor="black"):
+    def __init__(self, start='', target="", color="black", label="", fontcolor="black"):
         """Contructor of the Edge class.
 
         Args:
