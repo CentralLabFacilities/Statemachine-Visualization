@@ -1,3 +1,4 @@
+import os
 import xml.etree.ElementTree as ET
 from graphviz import Digraph
 from init import SMinit
@@ -10,7 +11,7 @@ import sys
 class Statemachine(object):
     """Main class for all Statemachines"""
 
-    def __init__(self, path="", level=0, father=0, filename="", graphname="", rootnode=0, init=0):
+    def __init__(self, path="", level=0, father=0, filename="", graphname="", rootnode=0, init=0, body=[]):
         super(Statemachine, self).__init__()
         self.pathprefix = path
         self.level = level
@@ -19,6 +20,7 @@ class Statemachine(object):
         self.graphname = graphname
         self.rootnode = rootnode
         self.init = init
+        self.body = body
 
     init = 0
     """SMinit: contains all the information given by initialisation.
@@ -215,7 +217,7 @@ class Statemachine(object):
         """
         """
         for node in self.rootnode:
-            if node.tag.endwith('state'):
+            if node.tag.endswith('state'):
                 # case: compound state
                 if 'initial' in node.attrib:
                     self.handleCmpState(node)
@@ -243,7 +245,7 @@ class Statemachine(object):
         newsm.graphname = 'cluster_' + newfile
         newsm.level = self.level + 1
         newsm.label = newfile
-        if self.level + 1 >= substrecs:
+        if self.level + 1 >= self.init.substrecs:
             newsm.draw = False
         newsm.readGraph()
         self.substatemachines[node.attrib['src']] = newsm.initialstate
@@ -252,14 +254,15 @@ class Statemachine(object):
             self.graph.subgraph(newsm.graph)
             for out_edge in newsm.outEdges:
                 for propTrans in node:  # propably transitions
-                    if propTrans.tag[len(ns):] == 'transition' and propTrans.attrib['event'] == node.attrib['id'] + '.' + out_edge.label:
+                    if propTrans.tag[len(self.init.ns):] == 'transition' and propTrans.attrib['event'] == node.attrib[
+                        'id'] + '.' + out_edge.label:
                         # case: send-event
                         if 'target' not in propTrans.attrib:
                             self.outEdges.append(out_edge)
                         # case: normal transition
                         else:
                             out_edge.target = propTrans.attrib['target']
-                            out_edge.color = sendevntcolor
+                            out_edge.color = self.init.sendevntcolor
                             self.inEdges.append(out_edge)
                         break
         # case: subsm will be reduced to a single node
@@ -267,11 +270,12 @@ class Statemachine(object):
             self.graph.node(node.attrib['id'], style='filled', shape='doublecircle')
             for out_edge in newsm.outEdges:
                 for propTrans in node:  # propably transitions
-                    if propTrans.tag[len(ns):] == 'transition' and propTrans.attrib['event'] == node.attrib['id'] + '.'\
+                    if propTrans.tag[len(self.init.ns):] == 'transition' and propTrans.attrib['event'] == node.attrib['id'] + '.' \
                             + out_edge.label:
                         if 'target' in propTrans.attrib:
                             target = propTrans.attrib['target']
-                            eventName = out_edge.start[:out_edge.start.find('.')] + '.' + out_edge.start + '.' + out_edge.label
+                            eventName = out_edge.start[
+                                        :out_edge.start.find('.')] + '.' + out_edge.start + '.' + out_edge.label
                             ed = Edge()
                             ed.start = node.attrib['id']
                             ed.target = target
@@ -287,12 +291,9 @@ class Statemachine(object):
                                 break
                         break
 
-
-
-
     def handleNormalState(self, node):
         for each in node:
-            if each.tag[len(ns):] == 'transition':
+            if each.tag[len(self.init.ns):] == 'transition':
                 # case: regular state transition
                 if 'target' in each.attrib:
                     ed = Edge()
@@ -304,12 +305,12 @@ class Statemachine(object):
                 # case: send event transition
                 else:
                     for every in each:
-                        if every.tag[len(ns):] == 'send':
+                        if every.tag[len(self.init.ns):] == 'send':
                             ed = Edge()
                             ed.start = node.attrib['id']
                             ed.label = every.attrib['event']
                             self.outEdges.append(ed)
-            elif each.tag[len(ns):] == 'send':
+            elif each.tag[len(self.init.ns):] == 'send':
                 ed = Edge()
                 ed.start = node.attrib['id']
                 ed.label = each.attrib['event']
@@ -398,25 +399,29 @@ class Edge(object):
 
 # If this script is executed in itself, run the main method (aka generate the graph).
 if __name__ == '__main__':
+    init = SMinit()
+    fmt = init.fmt
+    inName = init.inputName
 
-	init = SMinit()
-	fmt = init.fmt
-	inputName = init.inputName
+    #print(inputName, init.inputName)
 
     # initialize the switches and stuff
-    handleArguments(sys.argv)
+    init.handleArguments(sys.argv)  # check the sanity of the given arguments
+    init.sanityChecks()
 
-    # check the sanity of the given arguments
-    sanityChecks()
+    p, fn = Statemachine.splitInPathAndFilename(init.inputName)
 
-    p, fn = Statemachine.splitInPathAndFilename(inputName)
-
-    print(inputName)
+    print(p, fn)
 
     sm = Statemachine(path=p, filename=fn, init=init)
 
-    if not gvname:
-        os.rename(inputName[:-4] + '.gv.' + fmt, inputName[:-4] + '.' + fmt)
+    sm.readGraph()
+
+    sm.drawiteravly()
+
+    sm.graph.render(filename=fn[:-4]+'.gv', cleanup=not init.savegv)
+    if init.gvname:
+        os.rename(fn[:-4] + '.gv.' + fmt, fn[:-4] + '.' + fmt)
     else:
-        os.rename(init.gvname + '.' + fmt, inputName[:-4] + '.' + fmt)
+        os.rename(init.gvname + '.' + fmt, fn[:-4] + '.' + fmt)
     exit()

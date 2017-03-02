@@ -116,7 +116,7 @@ class SMinit(object):
                 tmp = each.split("=")[1]
                 clrs = tmp.split(",")
                 for each in clrs:
-                    tup = clrs.split(":")
+                    tup = each.split(":")
                     self.colordict[tup[0]] = tup[1]
             elif each.startswith("--format="):
                 tmp = each.split("=")[1]
@@ -127,7 +127,6 @@ class SMinit(object):
                     exit()
             elif each.endswith(".xml"):
                 self.inputName = each
-                print(inputName)
             elif each == "--savegv":
                 self.savegv = True
             elif each.startswith("--gvname="):
@@ -166,7 +165,7 @@ class SMinit(object):
 
         # gvname does not end with ".gv"
         if not self.gvname.endswith(".gv"):
-            self.gvname = self.gvname + ".gv"
+            self.gvname += ".gv"
 
         # input file does not exist
         if not os.path.isfile(self.inputName):
