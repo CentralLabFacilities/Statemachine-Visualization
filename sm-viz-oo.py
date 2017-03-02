@@ -403,15 +403,12 @@ if __name__ == '__main__':
     fmt = init.fmt
     inName = init.inputName
 
-    #print(inputName, init.inputName)
 
     # initialize the switches and stuff
     init.handleArguments(sys.argv)  # check the sanity of the given arguments
     init.sanityChecks()
 
     p, fn = Statemachine.splitInPathAndFilename(init.inputName)
-
-    print(p, fn)
 
     sm = Statemachine(path=p, filename=fn, init=init)
 
