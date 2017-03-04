@@ -38,6 +38,10 @@ class Statemachine(object):
     """dict(str, str): Contains all the substatemachines of this statemachine. Saved as name:initialstate
     """
 
+    cmpstates = {}
+    """dict[str, str]: Contains all the compound states of this statemachine. Saved as name of compoundstate:initialstate
+    """
+
     graph = 0
     """Digraph: The graphviz graph resembling this statemachine.
     """
@@ -232,6 +236,7 @@ class Statemachine(object):
                     self.handleNormalState(node)
 
     def handleCmpState(self, node):
+        self.cmpstates[node.attrib['id']] = node.attrib['initial']
         cmpsm = Statemachine(init=self.init, path=self.pathprefix)
         cmpsm.father = self
         cmpsm.level = self.level + 1
@@ -253,7 +258,7 @@ class Statemachine(object):
 
         for each in cmpsm.outEdges:
             if self.init.exclsubst:
-                each.start = node.attrib['id']
+                each.start = self.cmpstates[node.attrib['id']]
                 self.inEdges.append(each)
             else:
                 pass #TODO
