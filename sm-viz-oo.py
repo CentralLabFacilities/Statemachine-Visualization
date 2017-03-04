@@ -21,6 +21,19 @@ class Statemachine(object):
         self.rootnode = rootnode
         self.init = init
         self.body = body
+        self.inEdges = []
+        self.outEdges = []
+        self.substatemachines = []
+        self.substatemachinenames = {}
+        self.cmpstates = []
+        self.cmpstatenames = {}
+        self.graph = 0
+        self.initialstate = ''
+        self.label = ''
+        self.translessnodes = []
+        self.possiblereturnvalues = []
+        self.draw = True
+
 
     init = 0
     """SMinit: contains all the information given by initialisation.
@@ -34,12 +47,20 @@ class Statemachine(object):
     """list[Edge]: Contains all the edges leading out of the graph.
     """
 
-    substatemachines = {}
-    """dict(str, str): Contains all the substatemachines of this statemachine. Saved as name:initialstate
+    substatemachines = []
+    """list[Statemachine] Contains all the Statemachines that are substatemachines of this statemachine.
     """
 
-    cmpstates = {}
-    """dict[str, str]: Contains all the compound states of this statemachine. Saved as name of compoundstate:initialstate
+    substatemachinenames = {}
+    """dict(str, str): Contains all the substatemachinenames of this statemachine. Saved as name:initialstate
+    """
+
+    cmpstates = []
+    """list[Statemachine] Contains all the Statemachines that represent compound states of this Statemachine
+    """
+
+    cmpstatenames = {}
+    """dict[str, str]: Contains all the names of compound states of this statemachine. Saved as name of compoundstate:initialstate
     """
 
     graph = 0
@@ -103,7 +124,13 @@ class Statemachine(object):
         """Will draw first all graphs of the substatemachines of this statemachine (recursively) and then this statemachines graph.
         """
         for each in self.substatemachines:
-            self.substatemachines[each].drawiteravly()
+            if each.draw:
+                each.drawiteravly()
+                self.graph.subgraph(each.graph)
+        for each in self.cmpstates:
+            if each.draw:
+                each.drawiteravly()
+                self.graph.subgraph(each.graph)
         if self.draw:
             self.drawGraph()
 
@@ -118,16 +145,17 @@ class Statemachine(object):
             self.graph.node('Start', shape='Mdiamond')
 
             tmp = Edge(start='Start')
-            if self.initialstate in self.substatemachines:
-                tmp.target = self.substatemachines[self.initialstate]
+            if self.initialstate in self.substatemachinenames:
+                tmp.target = self.substatemachinenames[self.initialstate]
             else:
                 tmp.target = self.initialstate
             self.addEdge(tmp)
 
             self.graph.node('Finish', shape='Msquare')
             for each in self.outEdges:
-                each.target = 'Finish'
-                each.fontcolor = self.init.sendevntcolor
+                if not each.target:
+                    each.target = 'Finish'
+                    each.fontcolor = self.init.sendevntcolor
                 self.addEdge(each)
             for each in self.translessnodes:
                 each.target = 'Finish'
@@ -234,16 +262,32 @@ class Statemachine(object):
                 # case: normal node
                 else:
                     self.handleNormalState(node)
+        self.redirectInitialEdges()
+
+
+    def redirectInitialEdges(self):
+        """Redirects Edges that are targeted at compound, sourced and parallel states to their respective initial states.
+        """
+        for edge in self.inEdges:
+            if edge.target in self.cmpstatenames:
+                edge.target = self.cmpstatenames[edge.target]
+            elif edge.target in self.substatemachinenames:
+                edge.target = self.substatemachinenames[edge.target]
+            # TODO: parallel states 
 
     def handleCmpState(self, node):
-        self.cmpstates[node.attrib['id']] = node.attrib['initial']
+        self.cmpstatenames[node.attrib['id']] = node.attrib['initial']
         cmpsm = Statemachine(init=self.init, path=self.pathprefix)
+        self.cmpstates.append(cmpsm)
         cmpsm.father = self
         cmpsm.level = self.level + 1
+        cmpsm.label = node.attrib['id']
         cmpsm.rootnode = node
         cmpsm.graphname = 'cluster_' + node.attrib['id']
         cmpsm.graph = Digraph(cmpsm.graphname, engine=self.init.rengine, format=self.init.fmt)
         cmpsm.initialstate = node.attrib['initial']
+        cmpsm.body.append("color=" + self.init.cmpcolor)
+        cmpsm.body.append("style=\"\"")
 
         cmpsm.iterateThroughNodes()
 
@@ -251,22 +295,33 @@ class Statemachine(object):
         for each in node:
             nodesInCmpsm.append(each.attrib['id'])
 
+        edgesToSwitch = []
+
         for each in cmpsm.inEdges:
             if each.target not in nodesInCmpsm:
-                cmpsm.inEdges.remove(each)
-                cmpsm.outEdges.append(each)
+                edgesToSwitch.append(each)
+        for each in edgesToSwitch:
+            cmpsm.inEdges.remove(each)
+            cmpsm.outEdges.append(each)
+
+
+        print("inedges cmp3")
+        print(cmpsm.inEdges)
 
         for each in cmpsm.outEdges:
             if self.init.exclsubst:
-                each.start = self.cmpstates[node.attrib['id']]
+                each.start = self.cmpstatenames[node.attrib['id']]
                 self.inEdges.append(each)
             else:
-                pass #TODO
+                if each.target:
+                    self.inEdges.append(each)
+                else:
+                    self.outEdges.append(each)
 
-        if self.init.exclsubst:
-            self.graph.node(node.attrib['id'], style="filled")
-        else:
-            pass #TODO
+        #if self.init.exclsubst:
+         #   self.graph.node(node.attrib['id'], style="filled")
+        #else:
+         #   self.graph.subgraph(cmpsm.graph)
 
 
 
@@ -285,7 +340,7 @@ class Statemachine(object):
         if self.level + 1 >= self.init.substrecs:
             newsm.draw = False
         newsm.readGraph()
-        self.substatemachines[node.attrib['src']] = newsm.initialstate
+        self.substatemachinenames[node.attrib['src']] = newsm.initialstate
         # case: complete subsm will get rendered
         if newsm.draw:
             self.graph.subgraph(newsm.graph)
@@ -412,6 +467,11 @@ class Edge(object):
         self.color = color
         self.label = label
         self.fontcolor = fontcolor
+
+    def __repr__(self):
+        """For printing the Edges humanly readable.
+        """
+        return self.start + ', ' + self.target + ', ' + self.label + '\n'
 
     start = ''
     """str: The node from which this edge starts.
