@@ -230,7 +230,7 @@ class Statemachine(object):
         Args:
             edges (list(Edge)): The list of edges of which doubles are to be deleted.
 
-        Returns: 
+        Returns:
             list(Edge): A list of edges containing all the unique elements of the input.
 
         """
@@ -289,7 +289,7 @@ class Statemachine(object):
             elif edge.target in self.substatemachinenames and self.level < self.init.substrecs:
                 edge.target = self.substatemachinenames[edge.target]
             elif edge.target in self.parallelstatenames and not self.init.exclsubst:
-            	edge.target = self.parallelstatenames[edge.target]
+                edge.target = self.parallelstatenames[edge.target]
 
     def handleCmpState(self, node):
         self.cmpstatenames[node.attrib['id']] = node.attrib['initial']
@@ -334,7 +334,7 @@ class Statemachine(object):
             self.graph.node(node.attrib['id'], style="filled")
             cmpsm.draw = False
             for ed in cmpsm.outEdges:
-            	ed.start = node.attrib['id']
+                ed.start = node.attrib['id']
 
     def handleParallel(self, node):
         pass
@@ -440,7 +440,7 @@ class Statemachine(object):
 
         self.graph = Digraph(self.graphname, engine=self.init.rengine, format=self.init.fmt)
 
-        tree = ET.parse(self.filename)
+        tree = ET.parse(self.pathprefix + self.filename)
         self.rootnode = tree.getroot()
         self.initialstate = self.rootnode.attrib['initial']
 
