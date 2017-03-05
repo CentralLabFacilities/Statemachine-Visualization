@@ -5,6 +5,10 @@ from init import SMinit
 import sys
 
 """Object oriented statemachine renderer.
+Some Details about the Graphviz API:
+The order of commands is quite important. 
+Any graph that is made a subgraph of another graph needs to be completed. This means that every edge 
+must be added to the graph and every body modification must be appended BEFORE the subgraph-method is called.
 """
 
 
@@ -27,12 +31,15 @@ class Statemachine(object):
         self.substatemachinenames = {}
         self.cmpstates = []
         self.cmpstatenames = {}
+        self.parallelstates = []
+        self.parallelstatenames = {}
         self.graph = 0
         self.initialstate = ''
         self.label = ''
         self.translessnodes = []
         self.possiblereturnvalues = []
         self.draw = True
+
 
 
     init = 0
@@ -61,6 +68,14 @@ class Statemachine(object):
 
     cmpstatenames = {}
     """dict[str, str]: Contains all the names of compound states of this statemachine. Saved as name of compoundstate:initialstate
+    """
+
+    parallelstates = []
+    """list[Statemachine] Contains all the Statemachines that represent parallel states of this Statemachine
+    """
+
+    parallelstatenames = {}
+    """dict[str, str]: Contains all the names of parallel states of this statemachine. Saved as name of parallelstate:initialstate
     """
 
     graph = 0
@@ -269,11 +284,12 @@ class Statemachine(object):
         """Redirects Edges that are targeted at compound, sourced and parallel states to their respective initial states.
         """
         for edge in self.inEdges:
-            if edge.target in self.cmpstatenames:
+            if edge.target in self.cmpstatenames and not self.init.exclsubst:
                 edge.target = self.cmpstatenames[edge.target]
-            elif edge.target in self.substatemachinenames:
+            elif edge.target in self.substatemachinenames and self.level < self.init.substrecs:
                 edge.target = self.substatemachinenames[edge.target]
-            # TODO: parallel states 
+            elif edge.target in self.parallelstatenames and not self.init.exclsubst:
+            	edge.target = self.parallelstatenames[edge.target]
 
     def handleCmpState(self, node):
         self.cmpstatenames[node.attrib['id']] = node.attrib['initial']
@@ -304,10 +320,6 @@ class Statemachine(object):
             cmpsm.inEdges.remove(each)
             cmpsm.outEdges.append(each)
 
-
-        print("inedges cmp3")
-        print(cmpsm.inEdges)
-
         for each in cmpsm.outEdges:
             if self.init.exclsubst:
                 each.start = self.cmpstatenames[node.attrib['id']]
@@ -318,13 +330,11 @@ class Statemachine(object):
                 else:
                     self.outEdges.append(each)
 
-        #if self.init.exclsubst:
-         #   self.graph.node(node.attrib['id'], style="filled")
-        #else:
-         #   self.graph.subgraph(cmpsm.graph)
-
-
-
+        if self.init.exclsubst:
+            self.graph.node(node.attrib['id'], style="filled")
+            cmpsm.draw = False
+            for ed in cmpsm.outEdges:
+            	ed.start = node.attrib['id']
 
     def handleParallel(self, node):
         pass
