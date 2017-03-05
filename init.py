@@ -12,9 +12,9 @@ class SMinit(object):
     Possible switches:\n\t\
     --h \t\t Displays this very helpful text. \n\t\
     --ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to \
-    make your graph more readable. WIP \n\t\
+    make your graph more readable. \n\t\
     --reduce=n \t Exclude all Substatemachines below n levels. Use this to make your graph more readable without \
-    sacrificing inormation. WIP \n\t\
+    sacrificing inormation. \n\t\
     --nocmpstates \t Similarly to ex and reduce this will suppress compound states (states in states). \n\t\
     --cmpstateclr=clr \t Will set the color of the border in which compound states reside. \n\t\
     --bw \t\t Will render the graph without colors (aka in black and white). \n\t\
@@ -103,7 +103,7 @@ class SMinit(object):
                 exit(0)
             elif each == "--ex":
                 self.exclsubst = True
-                self.substrecs = 0
+                #self.substrecs = 0
             elif each.startswith("--reduce="):
                 self.substrecs = int(each.split("=")[1])
             elif each.startswith("--cmpstateclr="):

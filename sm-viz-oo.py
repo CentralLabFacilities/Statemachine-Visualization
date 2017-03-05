@@ -160,6 +160,7 @@ class Statemachine(object):
             self.graph.node('Start', shape='Mdiamond')
 
             tmp = Edge(start='Start')
+            print(self.initialstate, self.substatemachinenames)
             if self.initialstate in self.substatemachinenames:
                 tmp.target = self.substatemachinenames[self.initialstate]
             else:
@@ -181,6 +182,9 @@ class Statemachine(object):
         else:
             for each in self.body:
                 self.graph.body.append(each)
+
+        if self.father:
+            pass
 
         for each in self.inEdges:
             self.addEdge(each)
@@ -343,6 +347,7 @@ class Statemachine(object):
         subpath, newfile = self.splitInPathAndFilename(node.attrib['src'])
         completepath = self.pathprefix + subpath
         newsm = Statemachine(path=completepath, filename=newfile, init=self.init)
+        self.substatemachines.append(newsm)
         newsm.father = self
         newsm.graphname = 'cluster_' + newfile
         newsm.level = self.level + 1
@@ -350,7 +355,7 @@ class Statemachine(object):
         if self.level + 1 >= self.init.substrecs:
             newsm.draw = False
         newsm.readGraph()
-        self.substatemachinenames[node.attrib['src']] = newsm.initialstate
+        self.substatemachinenames[node.attrib['id']] = newsm.initialstate
         # case: complete subsm will get rendered
         if newsm.draw:
             self.graph.subgraph(newsm.graph)
@@ -392,6 +397,7 @@ class Statemachine(object):
                                 self.outEdges.append(ed)
                                 break
                         break
+        self.redirectInitialEdges()
 
     def handleNormalState(self, node):
         for each in node:
