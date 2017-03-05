@@ -39,6 +39,13 @@ class Statemachine(object):
         self.translessnodes = []
         self.possiblereturnvalues = []
         self.draw = True
+        if level and not len(body):
+            if level % 2:
+                self.body.append('style=filled')
+                self.body.append('color=grey')
+            else:
+                self.body.append('style=filled')
+                self.body.append('color=white')
 
 
 
@@ -297,17 +304,17 @@ class Statemachine(object):
 
     def handleCmpState(self, node):
         self.cmpstatenames[node.attrib['id']] = node.attrib['initial']
-        cmpsm = Statemachine(init=self.init, path=self.pathprefix)
+        cmpsmbody = []
+        cmpsmbody.append("color=" + self.init.cmpcolor)
+        cmpsmbody.append("style=\"\"")
+        cmpsm = Statemachine(init=self.init, path=self.pathprefix, level=self.level+1, body=cmpsmbody)
         self.cmpstates.append(cmpsm)
         cmpsm.father = self
-        cmpsm.level = self.level + 1
         cmpsm.label = node.attrib['id']
         cmpsm.rootnode = node
         cmpsm.graphname = 'cluster_' + node.attrib['id']
         cmpsm.graph = Digraph(cmpsm.graphname, engine=self.init.rengine, format=self.init.fmt)
         cmpsm.initialstate = node.attrib['initial']
-        cmpsm.body.append("color=" + self.init.cmpcolor)
-        cmpsm.body.append("style=\"\"")
 
         cmpsm.iterateThroughNodes()
 
@@ -346,11 +353,10 @@ class Statemachine(object):
     def handleSource(self, node):
         subpath, newfile = self.splitInPathAndFilename(node.attrib['src'])
         completepath = self.pathprefix + subpath
-        newsm = Statemachine(path=completepath, filename=newfile, init=self.init)
+        newsm = Statemachine(path=completepath, filename=newfile, init=self.init, level=self.level+1)
         self.substatemachines.append(newsm)
         newsm.father = self
         newsm.graphname = 'cluster_' + newfile
-        newsm.level = self.level + 1
         newsm.label = newfile
         if self.level + 1 >= self.init.substrecs:
             newsm.draw = False
