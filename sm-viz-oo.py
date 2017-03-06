@@ -167,9 +167,10 @@ class Statemachine(object):
             self.graph.node('Start', shape='Mdiamond')
 
             tmp = Edge(start='Start')
-            print(self.initialstate, self.substatemachinenames)
-            if self.initialstate in self.substatemachinenames:
+            if self.initialstate in self.substatemachinenames and self.init.substrecs > self.level:
                 tmp.target = self.substatemachinenames[self.initialstate]
+            elif self.initialstate in self.cmpstatenames and not self.init.exclsubst:
+                tmp.target = self.cmpstatenames[self.initialstate]
             else:
                 tmp.target = self.initialstate
             self.addEdge(tmp)
