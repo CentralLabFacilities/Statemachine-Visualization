@@ -382,28 +382,21 @@ class Statemachine(object):
         # case: subsm will be reduced to a single node
         else:
             self.graph.node(node.attrib['id'], style='filled', shape='doublecircle')
-            for out_edge in newsm.outEdges:
-                for propTrans in node:  # propably transitions
-                    if propTrans.tag[len(self.init.ns):] == 'transition' and propTrans.attrib['event'] == node.attrib['id'] + '.' \
-                            + out_edge.label:
-                        if 'target' in propTrans.attrib:
-                            target = propTrans.attrib['target']
-                            eventName = out_edge.start[
-                                        :out_edge.start.find('.')] + '.' + out_edge.start + '.' + out_edge.label
+            for propTrans in node:
+                if propTrans.tag[len(self.init.ns):] == 'transition':
+                    if 'target' in propTrans.attrib:
+                        ed = Edge()
+                        ed.start = node.attrib['id']
+                        ed.target = propTrans.attrib['target']
+                        ed.label = self.reduTransEvnt(propTrans.attrib['event'])
+                        ed.color = self.init.sendevntcolor
+                        self.inEdges.append(ed)
+                    else:
+                        for send_evnt in propTrans:
                             ed = Edge()
                             ed.start = node.attrib['id']
-                            ed.target = target
-                            ed.label = self.reduTransEvnt(eventName)
-                            ed.color = self.init.sendevntcolor
-                            self.inEdges.append(ed)
-                        else:
-                            for sent_evnt in propTrans:
-                                ed = Edge()
-                                ed.start = node.attrib['id']
-                                ed.label = sent_evnt.attrib['event']
-                                self.outEdges.append(ed)
-                                break
-                        break
+                            ed.label = sent_evnt.attrib['event']
+                            self.outEdges.append(ed)
         self.redirectInitialEdges()
 
     def handleNormalState(self, node):
