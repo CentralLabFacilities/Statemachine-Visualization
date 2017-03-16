@@ -283,12 +283,12 @@ class Statemachine(object):
                 # case: sourcing of another xml file
                 elif 'src' in node.attrib:
                     self.handleSource(node)
-                # case: parallel state
-                elif 'parallel' in node.attrib:
-                    self.handleParallel(node)
                 # case: normal node
                 else:
                     self.handleNormalState(node)
+            #case: parallel state
+            elif node.tag.endswith('parallel'):
+                self.handleParallel(node)
         self.redirectInitialEdges()
 
 
