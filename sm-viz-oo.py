@@ -534,4 +534,4 @@ if __name__ == '__main__':
         os.rename(fn[:-4] + '.gv.' + fmt, fn[:-4] + '.' + fmt)
     else:
         os.rename(init.gvname + '.' + fmt, fn[:-4] + '.' + fmt)
-    exit()
+    sys.exit()

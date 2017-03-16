@@ -1,5 +1,6 @@
 import graphviz
 import os
+import sys
 
 class SMinit(object):
     """docstring for SMinit"""
@@ -124,7 +125,7 @@ class SMinit(object):
                     self.fmt = tmp
                 else:
                     print("Specified format not known! Will now exit.\n")
-                    exit()
+                    sys.exit()
             elif each.endswith(".xml"):
                 self.inputName = each
             elif each == "--savegv":
@@ -137,14 +138,14 @@ class SMinit(object):
                     self.rengine = tmp
                 else:
                     print("Specified engine not known! Will now exit.\n")
-                    exit()
+                    sys.exit()
             elif each == "--nocmpstates":
                 self.minisg = False
             elif each == __file__ or each == 'sm-viz-oo.py' or each =='./sm-viz-oo':
                 pass
             else:
                 print("Parameter \"" + each + "\" not recognized. Will now exit.\n")
-                exit()
+                sys.exit()
 
 
     def sanityChecks(self):
@@ -154,12 +155,12 @@ class SMinit(object):
         # no input file
         if self.inputName == "":
             print("Input file is not an .xml or not specified! Will now exit.\n")
-            exit()
+            sys.exit()
 
         # gvname specified but not savegv
         if not self.gvname == "" and not self.savegv:
             print("gvname specified but not savegv! Will now exit.\n")
-            exit()
+            sys.exit()
         elif not self.gvname:
             self.gvname = self.inputName[:-4]
 
@@ -170,4 +171,4 @@ class SMinit(object):
         # input file does not exist
         if not os.path.isfile(self.inputName):
             print("The file \"" + self.inputName + "\" does not exist. Will now exit.\n")
-            exit()
+            sys.exit()
