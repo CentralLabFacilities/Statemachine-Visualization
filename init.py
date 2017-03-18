@@ -9,7 +9,7 @@ class SMinit(object):
 
 
     helptext = "\
-    Usage: ./sm-viz-oo your-statemachine.xml\n\
+    Usage: ./sm-viz your-statemachine.xml\n\
     Possible switches:\n\t\
     --h \t\t Displays this very helpful text. \n\t\
     --ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to \
