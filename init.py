@@ -9,7 +9,7 @@ class SMinit(object):
 
 
     helptext = "\
-    Usage: sm-viz.py your-statemachine.xml\n\
+    Usage: ./sm-viz-oo your-statemachine.xml\n\
     Possible switches:\n\t\
     --h \t\t Displays this very helpful text. \n\t\
     --ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to \
@@ -96,12 +96,12 @@ class SMinit(object):
         """
         if len(args) < 2:
             print(self.helptext)
-            exit(0)
+            sys.exit()
 
         for each in args:
             if each == "-h" or each == "--h" or each == "--help" or each == "-help":
                 print(self.helptext)
-                exit(0)
+                sys.exit()
             elif each == "--ex":
                 self.exclsubst = True
                 #self.substrecs = 0
