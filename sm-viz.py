@@ -422,7 +422,7 @@ class Statemachine(object):
                 ed = Edge()
                 ed.start = node.attrib['id']
                 ed.label = each.attrib['event']
-                self.possiblereturnvalues.append[each.attrib['event']]
+                self.possiblereturnvalues.append(ed.label)
                 self.outEdges.append(ed)
 
     def findNodesWithoutNextNode(self):

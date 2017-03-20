@@ -141,7 +141,7 @@ class SMinit(object):
                     sys.exit()
             elif each == "--nocmpstates":
                 self.minisg = False
-            elif each == __file__ or each == 'sm-viz-oo.py' or each =='./sm-viz-oo':
+            elif each == __file__ or each == 'sm-viz.py' or each =='./sm-viz':
                 pass
             else:
                 print("Parameter \"" + each + "\" not recognized. Will now exit.\n")
