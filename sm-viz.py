@@ -28,12 +28,9 @@ class Statemachine(object):
         self.body = body
         self.inEdges = []
         self.outEdges = []
-        self.substatemachines = []
-        self.substatemachinenames = {}
-        self.cmpstates = []
-        self.cmpstatenames = {}
-        self.parallelstates = []
-        self.parallelstatenames = {}
+        self.substatemachines = {}
+        self.cmpstates = {}
+        self.parallelstates = {}
         self.graph = 0
         self.initialstate = ''
         self.label = ''
@@ -62,28 +59,16 @@ class Statemachine(object):
     """list[Edge]: Contains all the edges leading out of the graph.
     """
 
-    substatemachines = []
-    """list[Statemachine] Contains all the Statemachines that are substatemachines of this statemachine.
+    substatemachines = {}
+    """dict(str, Statemachine) Contains all the Statemachines that are substatemachines of this statemachine, identified by their name.
     """
 
-    substatemachinenames = {}
-    """dict(str, str): Contains all the substatemachinenames of this statemachine. Saved as name:initialstate
+    cmpstates = {}
+    """dict(str, Statemachine) Contains all the Statemachines that represent compound states of this Statemachine, identified by their name.
     """
 
-    cmpstates = []
-    """list[Statemachine] Contains all the Statemachines that represent compound states of this Statemachine
-    """
-
-    cmpstatenames = {}
-    """dict[str, str]: Contains all the names of compound states of this statemachine. Saved as name of compoundstate:initialstate
-    """
-
-    parallelstates = []
-    """list[Statemachine] Contains all the Statemachines that represent parallel states of this Statemachine
-    """
-
-    parallelstatenames = {}
-    """dict[str, str]: Contains all the names of parallel states of this statemachine. Saved as name of parallelstate:initialstate
+    parallelstates = {}
+    """list[Statemachine] Contains all the Statemachines that represent parallel states of this Statemachine, identified by their name.
     """
 
     graph = 0
@@ -147,13 +132,15 @@ class Statemachine(object):
         """Will draw first all graphs of the substatemachines of this statemachine (recursively) and then this statemachines graph.
         """
         for each in self.substatemachines:
-            if each.draw:
-                each.drawiteravly()
-                self.graph.subgraph(each.graph)
+            subst = self.substatemachines[each]
+            if subst.draw:
+                subst.drawiteravly()
+                self.graph.subgraph(subst.graph)
         for each in self.cmpstates:
-            if each.draw:
-                each.drawiteravly()
-                self.graph.subgraph(each.graph)
+            cmpst = self.cmpstates[each]
+            if cmpst.draw:
+                cmpst.drawiteravly()
+                self.graph.subgraph(cmpst.graph)
         if self.draw:
             self.drawGraph()
 
@@ -168,10 +155,10 @@ class Statemachine(object):
             self.graph.node('Start', shape='Mdiamond')
 
             tmp = Edge(start='Start')
-            if self.initialstate in self.substatemachinenames and self.init.substrecs > self.level:
-                tmp.target = self.substatemachinenames[self.initialstate]
-            elif self.initialstate in self.cmpstatenames and not self.init.exclsubst:
-                tmp.target = self.cmpstatenames[self.initialstate]
+            if self.initialstate in self.substatemachines and self.init.substrecs > self.level:
+                tmp.target = self.substatemachines[self.initialstate].initialstate
+            elif self.initialstate in self.cmpstates and not self.init.exclsubst:
+                tmp.target = self.cmpstates[self.initialstate].initialstate
             else:
                 tmp.target = self.initialstate
             self.addEdge(tmp)
@@ -217,31 +204,33 @@ class Statemachine(object):
                 self.handleParallel(node)
         self.redirectInitialEdges()
 
-
     def redirectInitialEdges(self):
-        """Redirects Edges that are targeted at compound, sourced and parallel states to their respective initial states.
+        """ Redirects Edges that are targeted at compound, sourced and parallel states to their respective initial states.
         """
         for edge in self.inEdges:
-            if edge.target in self.cmpstatenames and not self.init.exclsubst:
-                edge.target = self.cmpstatenames[edge.target]
-            elif edge.target in self.substatemachinenames and self.level < self.init.substrecs:
-                edge.target = self.substatemachinenames[edge.target]
-            elif edge.target in self.parallelstatenames and not self.init.exclsubst:
-                edge.target = self.parallelstatenames[edge.target]
-
-    def redirectInitialEdgesRec(self):
-        """Recursive version of redirectInitialEdges. Redirects Edges that are targeted at compound, sourced and parallel states to their respective initial states.
-        """
-
-        pass
+            target = edge.target
+            sm = self
+            while detIfComplex(target, sm):
+                if detIfComplex(target, sm) == 'cmp':
+                    tmp = target
+                    target = sm.cmpstates[tmp].initialstate
+                    sm = sm.cmpstates[tmp]
+                elif detIfComplex(target, sm) == 'subst':
+                    tmp = target
+                    target = sm.substatemachines[tmp].initialstate
+                    sm = sm.substatemachines[tmp]
+                elif detIfComplex(target, sm) == 'par':
+                    tmp = target
+                    target = sm.parallelstates[tmp].initialstate
+                    sm = sm.parallelstates[tmp]
+               
 
     def handleCmpState(self, node):
-        self.cmpstatenames[node.attrib['id']] = node.attrib['initial']
         cmpsmbody = []
         cmpsmbody.append("color=" + self.init.cmpcolor)
         cmpsmbody.append("style=\"\"")
         cmpsm = Statemachine(init=self.init, path=self.pathprefix, level=self.level+1, body=cmpsmbody)
-        self.cmpstates.append(cmpsm)
+        self.cmpstates[node.attrib['id']] = cmpsm
         cmpsm.father = self
         cmpsm.label = node.attrib['id']
         cmpsm.rootnode = node
@@ -266,7 +255,7 @@ class Statemachine(object):
 
         for each in cmpsm.outEdges:
             if self.init.exclsubst:
-                each.start = self.cmpstatenames[node.attrib['id']]
+                each.start = self.cmpstates[node.attrib['id']].initialstate
                 self.inEdges.append(each)
             else:
                 if each.target:
@@ -287,14 +276,13 @@ class Statemachine(object):
         subpath, newfile = splitInPathAndFilename(node.attrib['src'])
         completepath = self.pathprefix + subpath
         newsm = Statemachine(path=completepath, filename=newfile, init=self.init, level=self.level+1)
-        self.substatemachines.append(newsm)
+        self.substatemachines[node.attrib['id']] = newsm
         newsm.father = self
         newsm.graphname = 'cluster_' + newfile
         newsm.label = newfile
         if self.level + 1 >= self.init.substrecs:
             newsm.draw = False
         newsm.readGraph()
-        self.substatemachinenames[node.attrib['id']] = newsm.initialstate
         # case: complete subsm will get rendered
         if newsm.draw:
             self.graph.subgraph(newsm.graph)
@@ -401,7 +389,9 @@ class Statemachine(object):
         Returns:
             Nothing. But will modify the graph of this statemachine.
         """
-        labelcond = edge.label+ ' (' + edge.cond +')'
+        labelcond = edge.label
+        if edge.cond:
+            labelcond = labelcond + ' (' + edge.cond +')'
         self.graph.edge(edge.start, edge.target, color=edge.color, label=labelcond , fontcolor=edge.fontcolor)
 
 

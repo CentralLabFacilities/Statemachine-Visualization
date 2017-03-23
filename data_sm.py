@@ -140,7 +140,7 @@ def splitInPathAndFilename(together):
         return '', together
     return together[:lastslash], together[lastslash:]
 
-    
+
 def detEdgeColor(event, init):
     """Determins the color of a edge, given a specific event.
 
@@ -158,3 +158,24 @@ def detEdgeColor(event, init):
             edgecolor = init.colordict[each]
             break
     return edgecolor
+
+
+
+def detIfComplex(target, sm):
+    """Determins whether a state is a compex state (aka sourced statemachine, compound or parallel state). If so will return the type. 
+    
+        Args:
+            target (str): The name of the state that shall be checked.
+            sm (Statemachine): The Statemachine of which the complex states shall be searched.
+
+        Return:
+            str: A string stating the . Is either 'cmp', 'subst' or 'par', for compound states, sourced substatemachines and parallel states, respectively.
+    """
+    ret = ''
+    if target in sm.cmpstates and not sm.init.exclsubst:
+        ret = 'cmp'
+    if target in sm.substatemachines and sm.level < sm.init.substrecs:
+        ret = 'subst'
+    if target in sm.parallelstates and not sm.init.exclsubst:
+        ret = 'par'
+    return ret
