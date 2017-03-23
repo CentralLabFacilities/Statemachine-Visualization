@@ -2,6 +2,7 @@ import os
 import xml.etree.ElementTree as ET
 from graphviz import Digraph
 from init import SMinit
+from data_sm import *
 import sys
 
 """Object oriented statemachine renderer.
@@ -157,8 +158,8 @@ class Statemachine(object):
             self.drawGraph()
 
     def drawGraph(self):
-        self.inEdges = self.removeDoubles(self.inEdges)
-        self.outEdges = self.removeDoubles(self.outEdges)
+        self.inEdges = removeDoubles(self.inEdges)
+        self.outEdges = removeDoubles(self.outEdges)
         if self.label:
             self.graph.body.append('label = \"' + self.label + '\"')
         if not self.level:
@@ -197,81 +198,6 @@ class Statemachine(object):
         for each in self.inEdges:
             self.addEdge(each)
 
-    def detEdgeColor(self, event):
-        """Determins the color of a edge, given a specific event.
-
-            Args:
-                event (str): The event which will determine the color of the edge.
-
-            Returns:
-                str: A string stating the color of the edge. EG: red, blue, green etc
-
-        """
-        edgecolor = 'black'
-        for each in self.init.colordict:
-            if event.__contains__(each):
-                edgecolor = self.init.colordict[each]
-                break
-        return edgecolor
-
-    @staticmethod
-    def splitInPathAndFilename(together):
-        # type: (str) -> (str, str)
-        """Splits a string into a Path and a filename
-
-        Args:
-            together (str): complete filename w/ path
-
-        Returns:
-            A tuple containing the path of the file (first element) and its name (second element)
-
-        Example:
-            splitInPathAndFilename('bla/blubb') = ('bla/', 'blubb')
-            splitInPathAndFilename('blubb') = ('', 'blubb')
-
-        """
-        lastslash = -together[::-1].find('/')
-        if lastslash == 1:
-            return '', together
-        return together[:lastslash], together[lastslash:]
-
-    @staticmethod
-    def removeDoubles(edges):
-        # type: (list[Edge]) -> list[Edge]
-        """Will remove all doubles in the specified list of edges so that each element will be unique.
-        Args:
-            edges (list(Edge)): The list of edges of which doubles are to be deleted.
-
-        Returns:
-            list(Edge): A list of edges containing all the unique elements of the input.
-
-        """
-        doubleless = []
-        for each in edges:
-            for every in doubleless:
-                if each.start == every.start and \
-                                each.target == every.target and \
-                                each.color == every.color and \
-                                each.label == every.label and \
-                                each.fontcolor == every.fontcolor:
-                    break
-            else:
-                doubleless.append(each)
-        return doubleless
-
-    @staticmethod
-    def reduTransEvnt(event):
-        # type: (str) -> str
-        """Reduces a given event so its skills name is removed.
-
-            Args:
-                event (str): The event which shall be reduced.
-
-            Returns:
-                str: The event without its skills name.
-        """
-        return event[event.find('.') + 1:]
-
     def iterateThroughNodes(self):
         """
         """
@@ -302,6 +228,12 @@ class Statemachine(object):
                 edge.target = self.substatemachinenames[edge.target]
             elif edge.target in self.parallelstatenames and not self.init.exclsubst:
                 edge.target = self.parallelstatenames[edge.target]
+
+    def redirectInitialEdgesRec(self):
+        """Recursive version of redirectInitialEdges. Redirects Edges that are targeted at compound, sourced and parallel states to their respective initial states.
+        """
+
+        pass
 
     def handleCmpState(self, node):
         self.cmpstatenames[node.attrib['id']] = node.attrib['initial']
@@ -388,7 +320,7 @@ class Statemachine(object):
                         ed = Edge()
                         ed.start = node.attrib['id']
                         ed.target = propTrans.attrib['target']
-                        ed.label = self.reduTransEvnt(propTrans.attrib['event'])
+                        ed.label = reduTransEvnt(propTrans.attrib['event'])
                         ed.color = self.init.sendevntcolor
                         self.inEdges.append(ed)
                     else:
@@ -407,8 +339,13 @@ class Statemachine(object):
                     ed = Edge()
                     ed.start = node.attrib['id']
                     ed.target = each.attrib['target']
-                    ed.label = self.reduTransEvnt(each.attrib['event'])
-                    ed.color = self.detEdgeColor(each.attrib['event'])
+                    if 'cond' in each.attrib:
+                        ed.cond = each.attrib['cond']
+                    if 'event' in each.attrib:
+                        ed.label = reduTransEvnt(each.attrib['event'])
+                        ed.color = detEdgeColor(each.attrib['event'], self.init)
+                    else:
+                        print('Warning: State ' + node.attrib['id'] + ' lacks a event in a transition. Sad.')
                     self.inEdges.append(ed)
                 # case: send event transition
                 else:
@@ -416,9 +353,11 @@ class Statemachine(object):
                         if every.tag[len(self.init.ns):] == 'send':
                             ed = Edge()
                             ed.start = node.attrib['id']
+                            if 'cond' in each.attrib:
+                                ed.cond = each.attrib['cond']
                             ed.label = every.attrib['event']
                             self.outEdges.append(ed)
-            elif each.tag[len(self.init.ns):] == 'send':
+            elif each.tag[len(self.init.ns):] == 'send':#dead code?
                 ed = Edge()
                 ed.start = node.attrib['id']
                 ed.label = each.attrib['event']
@@ -462,53 +401,8 @@ class Statemachine(object):
         Returns:
             Nothing. But will modify the graph of this statemachine.
         """
-        self.graph.edge(edge.start, edge.target, color=edge.color, label=edge.label, fontcolor=edge.fontcolor)
-
-
-class Edge(object):
-    """Class to represent Edge appropriately"""
-
-    def __init__(self, start='', target='', color='black', label='', fontcolor='black'):
-        """Contructor of the Edge class.
-
-        Args:
-            start (str, optional): The node from which this edge starts.
-            target (str, optional): The node to which this edge leads.
-            color (str, optional): The color of the edge.
-            label (str, optional): The writing which will appear near this edge.
-            fontcolor (str, optional): The color in which the label will appear.
-        """
-        super(Edge, self).__init__()
-        self.start = start
-        self.target = target
-        self.color = color
-        self.label = label
-        self.fontcolor = fontcolor
-
-    def __repr__(self):
-        """For printing the Edges humanly readable.
-        """
-        return self.start + ', ' + self.target + ', ' + self.label + '\n'
-
-    start = ''
-    """str: The node from which this edge starts.
-    """
-
-    target = ''
-    """str: The node to which this edge leads.
-    """
-
-    color = ''
-    """str: The color of the edge.
-    """
-
-    label = ''
-    """str: The writing which will appear near this edge.
-    """
-
-    fontcolor = ''
-    """str: The color in which the label will appear.
-    """
+        labelcond = edge.label+ ' (' + edge.cond +')'
+        self.graph.edge(edge.start, edge.target, color=edge.color, label=labelcond , fontcolor=edge.fontcolor)
 
 
 # If this script is executed in itself, run the main method (aka generate the graph).
