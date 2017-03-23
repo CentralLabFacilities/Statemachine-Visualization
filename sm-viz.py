@@ -223,6 +223,7 @@ class Statemachine(object):
                     tmp = target
                     target = sm.parallelstates[tmp].initialstate
                     sm = sm.parallelstates[tmp]
+            edge.target = target
                
 
     def handleCmpState(self, node):
