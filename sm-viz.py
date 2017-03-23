@@ -284,7 +284,7 @@ class Statemachine(object):
         pass
 
     def handleSource(self, node):
-        subpath, newfile = self.splitInPathAndFilename(node.attrib['src'])
+        subpath, newfile = splitInPathAndFilename(node.attrib['src'])
         completepath = self.pathprefix + subpath
         newsm = Statemachine(path=completepath, filename=newfile, init=self.init, level=self.level+1)
         self.substatemachines.append(newsm)
@@ -416,7 +416,7 @@ if __name__ == '__main__':
     init.handleArguments(sys.argv)  # check the sanity of the given arguments
     init.sanityChecks()
 
-    p, fn = Statemachine.splitInPathAndFilename(init.inputName)
+    p, fn = splitInPathAndFilename(init.inputName)
 
     sm = Statemachine(path=p, filename=fn, init=init)
 
