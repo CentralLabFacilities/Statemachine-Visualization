@@ -1,14 +1,14 @@
 import os
 import xml.etree.ElementTree as ET
 from graphviz import Digraph
-from init import SMinit
-from data_sm import *
+from smviz.utils import SMinit
+from smviz.data import *
 import sys
 
 """Object oriented statemachine renderer.
 Some Details about the Graphviz API:
-The order of commands is quite important. 
-Any graph that is made a subgraph of another graph needs to be completed. This means that every edge 
+The order of commands is quite important.
+Any graph that is made a subgraph of another graph needs to be completed. This means that every edge
 must be added to the graph and every body modification must be appended BEFORE the subgraph-method is called.
 """
 
@@ -224,7 +224,7 @@ class Statemachine(object):
                     target = sm.parallelstates[tmp].initialstate
                     sm = sm.parallelstates[tmp]
             edge.target = target
-               
+
 
     def handleCmpState(self, node):
         cmpsmbody = []

@@ -4,4 +4,6 @@ Neccessary packages:
 - graphviz ("pip3 install graphviz")
 - xml.etree.ElementTree
 
-A recent build can be found in the Release folder (build using pyinstaller --onefile)
+Install with setup.py
+
+Usage: python -m smviz your-statemachine.xml

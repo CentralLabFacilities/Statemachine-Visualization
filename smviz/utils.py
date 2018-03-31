@@ -9,7 +9,7 @@ class SMinit(object):
 
 
     helptext = "\
-    Usage: ./sm-viz your-statemachine.xml\n\
+    Usage:python -m smviz your-statemachine.xml\n\
     Possible switches:\n\t\
     --h \t\t Displays this very helpful text. \n\t\
     --ex \t\t Exclude Substatemachines in the generated graph. Actually reduces them to single states. Use this to \
@@ -98,6 +98,8 @@ class SMinit(object):
             print(self.helptext)
             sys.exit()
 
+        args.pop(0)
+
         for each in args:
             if each == "-h" or each == "--h" or each == "--help" or each == "-help":
                 print(self.helptext)
@@ -141,7 +143,7 @@ class SMinit(object):
                     sys.exit()
             elif each == "--nocmpstates":
                 self.minisg = False
-            elif each == __file__ or each == 'sm-viz.py' or each =='./sm-viz':
+            elif each == __file__ or each == '__main__.py':
                 pass
             else:
                 print("Parameter \"" + each + "\" not recognized. Will now exit.\n")
