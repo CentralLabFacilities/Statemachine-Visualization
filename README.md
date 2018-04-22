@@ -6,4 +6,4 @@ Neccessary packages:
 
 Install with setup.py
 
-Usage: python -m smviz your-statemachine.xml
+A recent build can be found in the Release folder (build using pyinstaller --onefile)

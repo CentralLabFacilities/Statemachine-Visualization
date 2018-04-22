@@ -48,12 +48,12 @@ class Edge(object):
             cond (str, optional): The condition under which this edge stands.
         """
         super(Edge, self).__init__()
-        self.start = start
-        self.target = target
-        self.color = color
-        self.label = label
-        self.fontcolor = fontcolor
-        self.cond = cond
+        self.start : str = start
+        self.target : str = target
+        self.color : str = color
+        self.label : str = label
+        self.fontcolor : str = fontcolor
+        self.cond : str = cond
 
     def __repr__(self):
         """For printing the Edges humanly readable.

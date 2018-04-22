@@ -1,8 +1,9 @@
 import os
 import xml.etree.ElementTree as ET
 from graphviz import Digraph
-from smviz.utils import SMinit
-from smviz.data import *
+from utils import SMinit
+import argparse
+from data import *
 import sys
 
 """Object oriented statemachine renderer.
@@ -398,7 +399,31 @@ class Statemachine(object):
 
 # If this script is executed in itself, run the main method (aka generate the graph).
 if __name__ == '__main__':
+    #TODO: argparsing using argparse
+    parser = argparse.ArgumentParser(description='Will render a given statemachine into a .png file (unless otherwise '
+                                                 'specified) using GraphViz. Will defautly color regular edges. Edges '
+                                                 'containing the words "fatal" or "error" will be rendered red, '
+                                                 '"success" green and "Timeout" blue. Furthermore, edges representing '
+                                                 '"send events" will have their label rendered blue. Compound states '
+                                                 'will either be rendered surrounded by a black border or into a '
+                                                 'single, gray state, depending on the "nocmpstates" flag. '
+                                                 'Substatemachines will be coloured differently depending on the level '
+                                                 'or be reduced into a single, double bordered state.')
+    parser.add_argument('--ex')
+    parser.add_argument('--reduce')
+    parser.add_argument('--nocmpstates')
+    parser.add_argument('--cmpstateclr')
+    parser.add_argument('--bw')
+    parser.add_argument('--eventclr=event:color')
+    parser.add_argument('--format')
+    parser.add_argument('--savegv')
+    parser.add_argument('--gvname')
+    parser.add_argument('--rengine')
+
     init = SMinit()
+    init.exclsubst = False
+    init.minisg = True
+    init.substrecs = 0
     fmt = init.fmt
     inName = init.inputName
 

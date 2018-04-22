@@ -1,179 +1,164 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="objectPerception.CheckForFreeSpaceInfront#Turning">
+<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" initial="nav.drive.DriveDirect#turnAround">
     <datamodel>
         <data id="#_STATE_PREFIX" expr="'de.unibi.citec.clf.bonsai.skills.'"/>
         <data id="#_ENABLE_SKILL_WARNINGS" expr="'true'"/>
-        <data id="#_SLOTS">
+        <data id="#_SLOTS" >
             <slots>
+                <slot key="NavigationGoalDataSlot" state="tasks.speechrec.CheckFreeSpaceAroundCrowd" xpath="/drive" />
+                <slot key="NavigationGoalDataSlot" state="nav.drive.DriveDirect#adjustPos" xpath="/drive" />
+                <slot key="CrowdSlot" state="personPerception.GatherCrowdInformation" xpath="/crowd" />
+                <slot key="CrowdSlot" state="personPerception.DescribeCrowd" xpath="/crowd" />
+                <slot key="DescriptionSlot" state="personPerception.DescribeCrowd" xpath="/crowdDescription" />
+                <slot key="StringSlot" state="dialog.SaySlot" xpath="/crowdDescription"/>
             </slots>
         </data>
     </datamodel>
-    
-    <state id="objectPerception.CheckForFreeSpaceInfront#Turning">
-        <transition event="CheckForFreeSpaceInfront.success.free" target="dialog.Talk#startDriving"/>
-        <transition event="CheckForFreeSpaceInfront.success.occupied" target="dialog.Talk#startTurning"/>
-        <transition event="CheckForFreeSpaceInfront.error" target="dialog.Talk#startTurning"/>
-        <transition event="CheckForFreeSpaceInfront.fatal" target="dialog.Talk#startTurning"/> 
-    </state>
-    
-    <state id="dialog.Talk#startDriving">
-        <onentry>
-            <assign name="var_drive" expr="var_drive-1"/>
-        </onentry>
-        <datamodel>
-            <data id="#_MESSAGE" expr="'I will adjust my position and drive forward.'" />
-            <data id="#_NONBLOCKING" expr="false" />
-        </datamodel>
-        <transition event="Talk.success" target="nav.drive.DriveDirect#driveForward" />
-        <transition event="Talk.success.timeout" target="nav.drive.DriveDirect#driveForward" />
-        <transition event="Talk.fatal" target="nav.drive.DriveDirect#driveForward" /> 
-        <transition event="Talk.*" target="nav.drive.DriveDirect#driveForward" /> 
-    </state>
-    
-    <state id="dialog.Talk#startTurning">
-        <datamodel>
-            <data id="#_MESSAGE" expr="'I will turn around now!'" />
-            <data id="#_NONBLOCKING" expr="false" />
-        </datamodel>
-        <transition event="Talk.success" target="nav.drive.DriveDirect#turnAround" />
-        <transition event="Talk.success.timeout" target="nav.drive.DriveDirect#turnAround" />
-        <transition event="Talk.fatal" target="nav.drive.DriveDirect#turnAround" /> 
-        <transition event="Talk.*" target="nav.drive.DriveDirect#turnAround" /> 
-    </state>
-    
-    <state id="nav.drive.DriveDirect#driveForward">
-        <datamodel>
-            <data id="#_DIST" expr="0.2" />
-            <data id="#_MOVE_SPEED" expr="0.2" />
-        </datamodel>
-        <transition event="DriveDirect.success" target="nav.drive.DriveDirect#turnAround" /> 
-        <transition event="DriveDirect.error.unknownResult" target="nav.drive.DriveDirect#turnAround" />
-        <transition event="DriveDirect.fatal" target="nav.drive.DriveDirect#turnAround" />
-    </state>
-        
+
     <state id="nav.drive.DriveDirect#turnAround">
         <datamodel>
+            <data id="#_DIST" expr="0.0" />
+            <data id="#_MOVE_SPEED" expr="0.0" />
             <data id="#_ANGLE" expr="3.14159265359" />
-            <data id="#_ROT_SPEED" expr="0.4" />
+            <data id="#_ROT_SPEED" expr="1.5" />
         </datamodel>
-        <transition event="DriveDirect.success" target="AlignTheCrowd" /> 
-        <transition event="DriveDirect.error.unknownResult" target="AlignTheCrowd" />
-        <transition event="DriveDirect.fatal" target="AlignTheCrowd" />
-    </state>
-    
-    <state id="AlignTheCrowd" initial="dialog.Talk#beginAlignment" >
-        
-        <state id="dialog.Talk#beginAlignment">
-            <datamodel>
-                <data id="#_MESSAGE" expr="'I will search the group now. Please be patient and look in my direction in a neutral face expresssion while I am scanning.'" />
-                <data id="#_NONBLOCKING" expr="false" />
-            </datamodel>
-            <transition event="Talk.success" target="Wait#scanWaitAlign" />
-            <transition event="Talk.success.timeout" target="Wait#scanWaitAlign" />
-            <transition event="Talk.fatal" target="Wait#scanWaitAlign" />
-        </state>
-    
-        <state id="Wait#scanWaitAlign">
-            <datamodel>
-                <data id="#_TIMEOUT" expr="'2000'" />
-            </datamodel>
-            <transition event="Wait.fatal" target="personPerception.face.ScanFaces#Align"/> 
-            <transition event="Wait.success" target="personPerception.face.ScanFaces#Align"/>  
-        </state>
-        
-        <state id="personPerception.face.ScanFaces#Align">
-            <datamodel>
-                <data id="#_USEHEIGHT" expr="'false'" />
-                <data id="#_SAVEIMAGE" expr="'false'" />
-                <data id="#_THRESHOLD" expr="'0.6'" />
-            </datamodel>
-            <transition event="ScanFaces.success" target="tasks.personrec.CheckPersonScans#Align" /> 
-            <transition event="ScanFaces.success.timeout" target="tasks.personrec.CheckPersonScans#Align" />
-            <transition event="ScanFaces.error" target="describeTheCrowd" />
-            <transition event="ScanFaces.fatal" target="describeTheCrowd" />
-        </state>  
-        
-        
-        <state id="tasks.personrec.CheckPersonScans#Align">
-            <datamodel>
-                <data id="#_SAVEIMAGE" expr="false" />
-            </datamodel>
-            <transition event="CheckPersonScans.success.equalOrMore" cond="var_turnAlign != 3" target="tasks.personrec.CheckImageSpaceAlign" /> 
-            <transition event="CheckPersonScans.success.equalOrMore" cond="var_turnAlign == 3" target="describeTheCrowd" /> 
-            <transition event="CheckPersonScans.success.equalOrMore" target="describeTheCrowd" /> 
-            <transition event="CheckPersonScans.success.less" cond="var_turnedLeft == true" target="nav.drive.DriveDirect#TurnBackLeft" />
-            <transition event="CheckPersonScans.success.less" cond="var_turnedLeft == false" target="nav.drive.DriveDirect#TurnBackRight" />
-            <transition event="CheckPersonScans.error" target="describeTheCrowd" />
-            <transition event="CheckPersonScans.fatal" target="describeTheCrowd" />
-        </state>
-    </state>
-        
-    <state id="tasks.personrec.CheckImageSpaceAlign">
-        <onentry>
-            <assign name="var_turnAlign" expr="var_turnAlign+1"/>
-        </onentry>
-        <datamodel>
-            <data id="#_PIXEL" expr="200" />
-            <data id="#_IMAGEWIDTH" expr="'@IMAGEWIDTH'" />
-            <data id="#_IMAGEHEIGHT" expr="'@IMAGEHEIGHT'" />
-        </datamodel>
-        <transition event="CheckImageSpaceAlign.error.NoFace" target="nav.drive.DriveDirect#AlignRight"/>
-        <transition event="CheckImageSpaceAlign.success.Left" target="nav.drive.DriveDirect#AlignLeft" />
-        <transition event="CheckImageSpaceAlign.success.Right" target="nav.drive.DriveDirect#AlignRight" />
-        <transition event="CheckImageSpaceAlign.success.Both" target="describeTheCrowd" />
-        <transition event="CheckImageSpaceAlign.success.Fits" target="describeTheCrowd" />
-        <transition event="CheckImageSpaceAlign.fatal" target="describeTheCrowd" />
-    </state>
-        
-    <state id="nav.drive.DriveDirect#AlignRight">
-        <onentry>
-            <assign name="var_turnedLeft" expr="false"/>
-        </onentry>
-        <datamodel>
-            <data id="#_ANGLE" expr="-0.175" />
-            <data id="#_ROT_SPEED" expr="0.4" />
-        </datamodel>
-        <transition event="DriveDirect.success" target="personPerception.face.ScanFaces#Align" /> 
-        <transition event="DriveDirect.error.unknownResult" target="personPerception.face.ScanFaces#Align" />
-        <transition event="DriveDirect.fatal" target="personPerception.face.ScanFaces#Align" />
-    </state>
-    
-    <state id="nav.drive.DriveDirect#AlignLeft">
-        <onentry>
-            <assign name="var_turnedLeft" expr="true"/>
-        </onentry>
-        <datamodel>
-            <data id="#_ANGLE" expr="0.175" /> 
-            <data id="#_ROT_SPEED" expr="0.4" />
-        </datamodel>
-        <transition event="DriveDirect.success" target="personPerception.face.ScanFaces#Align" /> 
-        <transition event="DriveDirect.error.unknownResult" target="personPerception.face.ScanFaces#Align" />
-        <transition event="DriveDirect.fatal" target="personPerception.face.ScanFaces#Align" />
-    </state>
-        
-    <state id="nav.drive.DriveDirect#TurnBackLeft">
-        <datamodel>
-            <data id="#_ANGLE" expr="-0.175" /> 
-            <data id="#_ROT_SPEED" expr="0.4" />
-        </datamodel>
-        <transition event="DriveDirect.success" target="describeTheCrowd" /> 
-        <transition event="DriveDirect.error.unknownResult" target="describeTheCrowd" />
-        <transition event="DriveDirect.fatal" target="describeTheCrowd" />
-    </state>
-    
-    <state id="nav.drive.DriveDirect#TurnBackRight">
-        <datamodel>
-            <data id="#_ANGLE" expr="0.175" /> 
-            <data id="#_ROT_SPEED" expr="0.4" />
-        </datamodel>
-        <transition event="DriveDirect.success" target="describeTheCrowd" /> 
-        <transition event="DriveDirect.error.unknownResult" target="describeTheCrowd" />
-        <transition event="DriveDirect.fatal" target="describeTheCrowd" />
+        <transition event="DriveDirect.*" target="body.SetRobotGaze#reset" />
     </state>
 
-    
-    <state id="End">
-        <send event="error"/>
+    <state id="body.SetRobotGaze#reset" >
+        <datamodel>
+            <data id="#_HORIZONTAL" expr="'0.0'" />
+            <data id="#_VERTICAL" expr="'0.0'" />
+        </datamodel>
+        <transition event="SetRobotGaze.*" target="dialog.Talk#searchGroup" />
     </state>
+
+    <state id="dialog.Talk#searchGroup">
+        <datamodel>
+            <data id="#_MESSAGE" expr="'I will search the group now. And adjust my position to get a good look at everyone'" />
+            <data id="#_BLOCKING" expr="'true'" />
+        </datamodel>
+        <transition event="Talk.*" target="adjustPos" />
+    </state>
+
+    <state id="adjustPos" initial="tasks.speechrec.CheckFreeSpaceAroundCrowd">
+        <state id="tasks.speechrec.CheckFreeSpaceAroundCrowd">
+            <transition event="CheckFreeSpaceAroundCrowd.success.noPerson" target="dialog.Talk#noPerson"/>
+            <transition event="CheckFreeSpaceAroundCrowd.success" target="nav.drive.DriveDirect#adjustPos"/>
+            <transition event="CheckFreeSpaceAroundCrowd.error" target="dialog.Talk#beginScanProcedure"/>
+            <transition event="CheckFreeSpaceAroundCrowd.fatal" target="dialog.Talk#beginScanProcedure"/>
+        </state>
+
+        <state id="dialog.Talk#noPerson">
+            <datamodel>
+                <data id="#_MESSAGE" expr="'Something went wrong. I could not detect any person to adjust my position'" />
+                <data id="#_BLOCKING" expr="'true'" />
+            </datamodel>
+            <transition event="Talk.*" target="dialog.Talk#beginScanProcedure" />
+        </state>
+
+        <state id="nav.drive.DriveDirect#adjustPos">
+            <transition event="DriveDirect.successPsTimeout" target="dialog.Talk#successTimout" />
+            <transition event="DriveDirect.success" target="dialog.Talk#success" />
+            <transition event="DriveDirect.error.cancelled" target="dialog.Talk#errorCancelled" />
+            <transition event="DriveDirect.error.unknownResult" target="dialog.Talk#errorUnhandeled" />
+            <transition event="DriveDirect.fatal" target="dialog.Talk#fatal" />
+        </state>
+
+        <state id="dialog.Talk#successTimout">
+            <datamodel>
+                <data id="#_MESSAGE" expr="'There was a Timeout while driving.'" />
+                <data id="#_BLOCKING" expr="'true'" />
+            </datamodel>
+            <transition event="Talk.*" target="dialog.Talk#beginScanProcedure" />
+        </state>
+
+        <state id="dialog.Talk#success">
+            <datamodel>
+                <data id="#_MESSAGE" expr="'I successfully adjusted my position.'" />
+                <data id="#_BLOCKING" expr="'true'" />
+            </datamodel>
+            <transition event="Talk.*" target="dialog.Talk#beginScanProcedure" />
+        </state>
+
+        <state id="dialog.Talk#errorUnhandeled">
+            <datamodel>
+                <data id="#_MESSAGE" expr="'Something went wrong. I encountered an unexpected Error. '" />
+                <data id="#_BLOCKING" expr="'true'" />
+            </datamodel>
+            <transition event="Talk.*" target="dialog.Talk#beginScanProcedure" />
+        </state>
+
+        <state id="dialog.Talk#errorCancelled">
+            <datamodel>
+                <data id="#_MESSAGE" expr="'Something went wrong. My attempt to adjust my position was cancelled.'" />
+                <data id="#_BLOCKING" expr="'true'" />
+            </datamodel>
+            <transition event="Talk.*" target="dialog.Talk#beginScanProcedure" />
+        </state>
+
+        <state id="dialog.Talk#fatal">
+            <datamodel>
+                <data id="#_MESSAGE" expr="'A fatal error accrued while attempting to adjust my position'" />
+                <data id="#_BLOCKING" expr="'true'" />
+            </datamodel>
+            <transition event="Talk.*" target="dialog.Talk#beginScanProcedure" />
+        </state>
+
+    </state>
+
+    <state id="dialog.Talk#beginScanProcedure">
+        <datamodel>
+            <data id="#_MESSAGE" expr="'I will scan the group now. please do not move and look in my direction with a neutral facial expression.'" />
+            <data id="#_BLOCKING" expr="'true'" />
+        </datamodel>
+        <transition event="Talk.success" target="Wait#scanWaitInit" />
+        <transition event="Talk.success.timeout" target="Wait#scanWaitInit" />
+        <transition event="Talk.fatal" target="Wait#scanWaitInit" />
+    </state>
+    
+    <state id="Wait#scanWaitInit">
+        <datamodel>
+            <data id="#_TIMEOUT" expr="'500'" />
+        </datamodel>
+        <transition event="Wait.fatal" target="personPerception.GatherCrowdInformation"/>
+        <transition event="Wait.success" target="personPerception.GatherCrowdInformation"/>
+    </state>
+
+    <state id="personPerception.GatherCrowdInformation">
+        <transition event="GatherCrowdInformation.success.peopleFound" target="body.ExecuteAnimation"/>
+        <transition event="GatherCrowdInformation.success.noPeople" target="body.ExecuteAnimation"/>
+        <transition event="GatherCrowdInformation.fatal" target="body.ExecuteAnimation"/>
+    </state>
+
+
+    <state id="body.ExecuteAnimation">
+        <datamodel>
+            <data id="#_ANIMATION_NAME" expr="'camera'" />
+            <data id="#_BLOCKING" expr="'true'" />
+        </datamodel>
+        <transition event="ExecuteAnimation.success" target="personPerception.DescribeCrowd" />
+        <transition event="ExecuteAnimation.success.timeout" target="personPerception.DescribeCrowd" />
+        <transition event="ExecuteAnimation.fatal" target="personPerception.DescribeCrowd" />
+    </state>
+
+    <state id="personPerception.DescribeCrowd">
+        <transition event="DescribeCrowd.success" target="dialog.SaySlot"/>
+        <transition event="DescribeCrowd.fatal" target="dialog.SaySlot"/>
+    </state>
+
+    <state id="dialog.SaySlot">
+        <datamodel>
+            <data id="#_MESSAGE" expr="'$S.'" />
+        </datamodel>
+        <transition event="SaySlot.success">
+            <send event="success"/>
+        </transition>
+        <transition event="SaySlot.fatal">
+            <send event="error"/>
+        </transition>
+    </state>
+
+    <state id="End"/>
     
 </scxml>
