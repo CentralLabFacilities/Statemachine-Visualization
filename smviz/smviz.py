@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from data import Edge, removeDoubles, reduTransEvnt
 from typing import List
 
-debug = True
+debug = False
 
 
 def debug_print(line: str) -> None:
@@ -267,7 +267,7 @@ if __name__ == '__main__':
 
     # render
     try:
-        statemachine.graph.render(filename=file + '.gv')
+        statemachine.graph.render(filename=file.replace('.xml', ''), cleanup=not debug)
     except Exception as e:
         print('Got an error rendering the statemachine: ' + str(e))
         sys.exit(0)
