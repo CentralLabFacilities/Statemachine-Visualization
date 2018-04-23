@@ -7,7 +7,7 @@ from typing import List
 import traceback
 
 
-debug = True
+debug = False
 
 
 def debug_print(line: str) -> None:
@@ -250,6 +250,8 @@ class Statemachine:
 
 
 if __name__ == '__main__':
+    if len(sys.argv) >= 3 and sys.argv[2] == '-debug':
+        debug = True
     file : str = sys.argv[1]
     node = readGraph(file)
     statemachine = Statemachine(node, file)
