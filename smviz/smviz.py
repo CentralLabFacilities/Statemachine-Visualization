@@ -89,7 +89,7 @@ class Statemachine:
                         starting_node = state
                 outgoing_edge : Edge = Edge(start=starting_node) # Find way to reconstruct state name
                 if 'target' in potential_transition.attrib:
-                    outgoing_edge.target = potential_transition.attribs['target']
+                    outgoing_edge.target = potential_transition.attrib['target']
                     self.internalEdges.append(outgoing_edge)
                 else:
                     for potential_send in potential_transition:
@@ -177,8 +177,8 @@ class Statemachine:
         for edge in self.internalEdges:
             currentStatemachine : Statemachine = self
             while edge.target in [x.rootnode.attrib['id'] for x in
-                              currentStatemachine.compoundStates + currentStatemachine.parallelStates]:
-                for x in currentStatemachine.compoundStates + currentStatemachine.parallelStates:
+                              currentStatemachine.compoundStates]:
+                for x in currentStatemachine.compoundStates:
                     if x.rootnode.attrib['id'] == edge.target:
                         edge.target = x.rootnode.attrib['initial']
                         currentStatemachine = x
@@ -285,7 +285,7 @@ if __name__ == '__main__':
         statemachine.addEdge(trailingEdge)
 
     for edge in statemachine.outGoingEdges:
-        print(edge)
+        debug_print(edge)
         edge.target = 'Finish'
 
     debug_print('Edges: ' + str(statemachine.internalEdges))
