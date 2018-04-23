@@ -4,8 +4,10 @@ from graphviz import Digraph
 import xml.etree.ElementTree as ET
 from data import Edge, removeDoubles, reduTransEvnt
 from typing import List
+import traceback
 
-debug = False
+
+debug = True
 
 
 def debug_print(line: str) -> None:
@@ -68,8 +70,36 @@ class Statemachine:
                 self.handleParallel(node)
         self.redirectInitialEdges()
 
+    def handleParallel(self, node : ET.Element) -> None:
+        parallelmaschine : Statemachine = Statemachine(node, 'cluster_' + node.attrib['id'])
+        parallelmaschine.graph.body.append('style=""')
+        parallelmaschine.graph.body.append('color="black"')
+        parallelmaschine.graph.body.append('label="' + node.attrib['id'] + '"')
+        self.parallelStates.append(parallelmaschine)
+        parallelmaschine.graph.node(node.attrib['id'], shape='triangle')
+        parallelmaschine.iterateThroughNodes()
+        for state in parallelmaschine.states:
+            triangleEdge : Edge = Edge(start=node.attrib['id'], target=state)
+            parallelmaschine.internalEdges.append(triangleEdge)
+        for potential_transition in node:
+            if potential_transition.tag.endswith('transition'):
+                starting_node : str = ''
+                for state in parallelmaschine.states:
+                    if state.endswith(potential_transition.attrib['event'].split('.')[0]):
+                        starting_node = state
+                outgoing_edge : Edge = Edge(start=starting_node) # Find way to reconstruct state name
+                if 'target' in potential_transition.attrib:
+                    outgoing_edge.target = potential_transition.attribs['target']
+                    self.internalEdges.append(outgoing_edge)
+                else:
+                    for potential_send in potential_transition:
+                        if potential_send.tag == 'send':
+                            outgoing_edge.cond = reduTransEvnt(potential_transition.attrib['event'])
+                            self.outGoingEdges.append(outgoing_edge)
+                            break
+
+
     def handleCmpState(self, node : ET.Element) -> None:
-        #TODO
         compoundmaschine : Statemachine = Statemachine(node, 'cluster_' + node.attrib['id'])
         compoundmaschine.graph.body.append('style=""')
         compoundmaschine.graph.body.append('color="black"')
@@ -142,11 +172,6 @@ class Statemachine:
                 ed.start = node.attrib['id']
                 ed.label = each.attrib['event']
                 self.outGoingEdges.append(ed)
-
-    def handleParallel(self, node : ET.Element) -> None:
-        #TODO
-        print('Parallels not supported at this time, will exit now!')
-        sys.exit(0)
 
     def redirectInitialEdges(self) -> None:
         for edge in self.internalEdges:
@@ -232,6 +257,7 @@ if __name__ == '__main__':
         statemachine.iterateThroughNodes()
     except Exception as e:
         print('Got an error iterating through the nodes: ' + str(e))
+        print('Exact Exception: ' + str(traceback.format_exc()))
         sys.exit(0)
 
     # Stuff for top level
@@ -241,8 +267,8 @@ if __name__ == '__main__':
     startingEdge : Edge = Edge(start='Start')
     initial : str = statemachine.rootnode.attrib['initial']
     currentStatemachine : Statemachine = statemachine
-    while initial in [x.rootnode.attrib['id'] for x in currentStatemachine.compoundStates + currentStatemachine.parallelStates]:
-        for x in currentStatemachine.compoundStates + currentStatemachine.parallelStates:
+    while initial in [x.rootnode.attrib['id'] for x in currentStatemachine.compoundStates]:
+        for x in currentStatemachine.compoundStates:
             if x.rootnode.attrib['id'] == initial:
                 initial = x.rootnode.attrib['initial']
                 currentStatemachine = x
@@ -256,6 +282,10 @@ if __name__ == '__main__':
     if trailingEdge.start:
         statemachine.addEdge(trailingEdge)
 
+    for edge in statemachine.outGoingEdges:
+        print(edge)
+        edge.target = 'Finish'
+
     debug_print('Edges: ' + str(statemachine.internalEdges))
 
     # draw
@@ -263,6 +293,7 @@ if __name__ == '__main__':
         statemachine.drawIteravely()
     except Exception as e:
         print('Got an error drawing the statemachine: ' + str(e))
+        print('Exact Exception: ' + str(traceback.format_exc()))
         sys.exit(0)
 
     # render
@@ -270,6 +301,7 @@ if __name__ == '__main__':
         statemachine.graph.render(filename=file.replace('.xml', ''), cleanup=not debug)
     except Exception as e:
         print('Got an error rendering the statemachine: ' + str(e))
+        print('Exact Exception: ' + str(traceback.format_exc()))
         sys.exit(0)
 
     sys.exit(0)
