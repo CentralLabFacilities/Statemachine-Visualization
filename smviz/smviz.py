@@ -279,7 +279,7 @@ if __name__ == '__main__':
 
     trailingEdge : Edge = Edge(target='Finish')
     for node in statemachine.rootnode:
-        if 'final' in node.attrib:
+        if 'final' in node.attrib or node.attrib['id'] == 'End':
             trailingEdge.start = node.attrib['id']
     if trailingEdge.start:
         statemachine.addEdge(trailingEdge)
