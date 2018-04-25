@@ -48,6 +48,7 @@ class Statemachine:
         self.states : List[str] = []
         self.graph = Digraph(graphname, engine='dot', format='png')
         self.graph.body.append('label="' + graphname + '"')
+        self.graphname : str = graphname
 
     def iterateThroughNodes(self) -> None:
         for node in self.rootnode:
@@ -81,22 +82,42 @@ class Statemachine:
         for state in parallelmaschine.states:
             triangleEdge : Edge = Edge(start=node.attrib['id'], target=state)
             parallelmaschine.internalEdges.append(triangleEdge)
+        for machine in parallelmaschine.parallelStates:
+            triangleEdge : Edge = Edge(start=node.attrib['id'], target=machine.graphname.replace('cluster_', ''))
+            parallelmaschine.internalEdges.append(triangleEdge)
+        for machine in parallelmaschine.compoundStates:
+            triangleEdge : Edge = Edge(start=node.attrib['id'], target=resolve_initial(machine))
+            parallelmaschine.internalEdges.append(triangleEdge)
         for potential_transition in node:
             if potential_transition.tag.endswith('transition'):
-                starting_node : str = ''
+                event_full : str = potential_transition.attrib['event']
+                statename : str = event_full.split('.')[0]
+                outgoing_edge : Edge = Edge() # Find way to reconstruct state name
                 for state in parallelmaschine.states:
-                    if state.endswith(potential_transition.attrib['event'].split('.')[0]):
-                        starting_node = state
-                outgoing_edge : Edge = Edge(start=starting_node) # Find way to reconstruct state name
+                    if state.endswith(statename):
+                        outgoing_edge.start = state
+                        outgoing_edge.label = state.replace(statename, '')
+                for machine in parallelmaschine.parallelStates:
+                    if machine.graphname.endswith(statename):
+                        outgoing_edge.start = machine.graphname.replace('cluster_', '')
+                        outgoing_edge.label = event_full[1:].replace(statename, '')
+                for machine in parallelmaschine.compoundStates:
+                    for encapsulated_state in get_all_states(machine):
+                        if encapsulated_state.endswith(statename):
+                            outgoing_edge.start = encapsulated_state
+                            outgoing_edge.label = event_full[1:].replace(statename, '')
+
                 if 'target' in potential_transition.attrib:
                     outgoing_edge.target = potential_transition.attrib['target']
                     self.internalEdges.append(outgoing_edge)
                 else:
                     for potential_send in potential_transition:
                         if potential_send.tag == 'send':
-                            outgoing_edge.cond = reduTransEvnt(potential_transition.attrib['event'])
+                            outgoing_edge.label = reduTransEvnt(potential_transition.attrib['event'])
                             self.outGoingEdges.append(outgoing_edge)
                             break
+                if 'cond' in potential_transition.attrib:
+                    outgoing_edge.cond = potential_transition.attrib['cond']
 
 
     def handleCmpState(self, node : ET.Element) -> None:
@@ -120,10 +141,11 @@ class Statemachine:
         eventsCatched : list(str)= []
 
         self.graph.node(node.attrib['id'], style='filled', shape='doublecircle')
+        self.states.append(node.attrib['id'])
         for propTrans in node:
             if propTrans.tag == 'transition':
                 if 'target' in propTrans.attrib:
-                    ed = Edge()
+                    ed : Edge = Edge()
                     ed.start = node.attrib['id']
                     ed.target = propTrans.attrib['target']
                     ed.label = reduTransEvnt(propTrans.attrib['event'])
@@ -132,7 +154,7 @@ class Statemachine:
                     self.internalEdges.append(ed)
                 else:
                     for send_evnt in propTrans:
-                        ed = Edge()
+                        ed : Edge = Edge()
                         ed.start = node.attrib['id']
                         ed.label = send_evnt.attrib['event']
                         eventsCatched.append(ed.label)
@@ -146,7 +168,7 @@ class Statemachine:
             if each.tag == 'transition':
                 # case: regular state transition
                 if 'target' in each.attrib:
-                    ed = Edge()
+                    ed : Edge = Edge()
                     ed.start = node.attrib['id']
                     ed.target = each.attrib['target']
                     if 'cond' in each.attrib:
@@ -161,14 +183,14 @@ class Statemachine:
                 else:
                     for every in each:
                         if every.tag == 'send':
-                            ed = Edge()
+                            ed : Edge = Edge()
                             ed.start = node.attrib['id']
                             if 'cond' in each.attrib:
                                 ed.cond = each.attrib['cond']
                             ed.label = every.attrib['event']
                             self.outGoingEdges.append(ed)
             elif each.tag == 'send':#dead code?
-                ed = Edge()
+                ed : Edge = Edge()
                 ed.start = node.attrib['id']
                 ed.label = each.attrib['event']
                 self.outGoingEdges.append(ed)
@@ -243,11 +265,27 @@ class Statemachine:
         Returns:
             Nothing. But will modify the graph of this statemachine.
         """
-        labelcond = edge.label
+        labelevent= edge.label
         if edge.cond:
-            labelcond = labelcond + ' (' + edge.cond +')'
-        self.graph.edge(edge.start, edge.target, color=edge.color, label=labelcond , fontcolor=edge.fontcolor)
+            labelevent += ' (' + edge.cond +')'
+        self.graph.edge(edge.start, edge.target, color=edge.color, label=labelevent , fontcolor=edge.fontcolor)
 
+def resolve_initial(statemachine : Statemachine) -> str:
+    initial : str = statemachine.rootnode.attrib['initial']
+    currentStatemachine : Statemachine = statemachine
+    while initial in [x.rootnode.attrib['id'] for x in currentStatemachine.compoundStates]:
+        for x in currentStatemachine.compoundStates:
+            if x.rootnode.attrib['id'] == initial:
+                initial = x.rootnode.attrib['initial']
+                currentStatemachine = x
+    return currentStatemachine.rootnode.attrib['initial']
+
+def get_all_states(statemachine: Statemachine) -> List[str]:
+    states = []
+    states.extend(statemachine.states)
+    for machine in statemachine.compoundStates + statemachine.parallelStates:
+        states.extend(get_all_states(machine))
+    return states
 
 if __name__ == '__main__':
     if len(sys.argv) >= 3 and sys.argv[2] == '-debug':
@@ -267,19 +305,12 @@ if __name__ == '__main__':
     statemachine.graph.node('Start', shape='Mdiamond')
     statemachine.graph.node('Finish', shape='Msquare')
     startingEdge : Edge = Edge(start='Start')
-    initial : str = statemachine.rootnode.attrib['initial']
-    currentStatemachine : Statemachine = statemachine
-    while initial in [x.rootnode.attrib['id'] for x in currentStatemachine.compoundStates]:
-        for x in currentStatemachine.compoundStates:
-            if x.rootnode.attrib['id'] == initial:
-                initial = x.rootnode.attrib['initial']
-                currentStatemachine = x
-    startingEdge.target = currentStatemachine.rootnode.attrib['initial']
+    startingEdge.target = resolve_initial(statemachine)
     statemachine.addEdge(startingEdge)
 
     trailingEdge : Edge = Edge(target='Finish')
     for node in statemachine.rootnode:
-        if 'final' in node.attrib or node.attrib['id'] == 'End':
+        if 'final' in node.attrib or ('id' in node.attrib and node.attrib['id'] == 'End'):
             trailingEdge.start = node.attrib['id']
     if trailingEdge.start:
         statemachine.addEdge(trailingEdge)
