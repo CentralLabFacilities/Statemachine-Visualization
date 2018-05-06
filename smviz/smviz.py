@@ -96,16 +96,16 @@ class Statemachine:
                 for state in parallelmaschine.states:
                     if state.endswith(statename):
                         outgoing_edge.start = state
-                        outgoing_edge.label = state.replace(statename, '')
+                        outgoing_edge.add_event(state.replace(statename, ''))
                 for machine in parallelmaschine.parallelStates:
                     if machine.graphname.endswith(statename):
                         outgoing_edge.start = machine.graphname.replace('cluster_', '')
-                        outgoing_edge.label = event_full[1:].replace(statename, '')
+                        outgoing_edge.add_event(event_full[1:].replace(statename, ''))
                 for machine in parallelmaschine.compoundStates:
                     for encapsulated_state in get_all_states(machine):
                         if encapsulated_state.endswith(statename):
                             outgoing_edge.start = encapsulated_state
-                            outgoing_edge.label = event_full[1:].replace(statename, '')
+                            outgoing_edge.add_event(event_full[1:].replace(statename, ''))
 
                 if 'target' in potential_transition.attrib:
                     outgoing_edge.target = potential_transition.attrib['target']
@@ -113,7 +113,7 @@ class Statemachine:
                 else:
                     for potential_send in potential_transition:
                         if potential_send.tag == 'send':
-                            outgoing_edge.label = reduTransEvnt(potential_transition.attrib['event'])
+                            outgoing_edge.add_event(reduTransEvnt(potential_transition.attrib['event']))
                             self.outGoingEdges.append(outgoing_edge)
                             break
                 if 'cond' in potential_transition.attrib:
@@ -148,19 +148,22 @@ class Statemachine:
                     ed : Edge = Edge()
                     ed.start = node.attrib['id']
                     ed.target = propTrans.attrib['target']
-                    ed.label = reduTransEvnt(propTrans.attrib['event'])
+                    ed.add_event(reduTransEvnt(propTrans.attrib['event']))
                     eventsCatched.append(ed.label)
                     ed.color = 'blue'
                     self.internalEdges.append(ed)
                 else:
                     for send_evnt in propTrans:
+                        if not send_evnt.tag == 'send':
+                            continue
                         ed : Edge = Edge()
                         ed.start = node.attrib['id']
-                        ed.label = send_evnt.attrib['event']
+                        ed.add_event(send_evnt.attrib['event'])
                         eventsCatched.append(ed.label)
                         self.outGoingEdges.append(ed)
-        if not set(events) == set(eventsCatched):
-            print('Warning: Events catched and events thrown of sourced statemachine in state ' + node.attrib['id'] + ' do not match!')
+        eventsNotInCatchedEvents : List[str] = [event for event in events if event not in eventsCatched and '*' not in eventsCatched]
+        if len(eventsNotInCatchedEvents) > 0:
+            print('Warning: Events catched and events thrown of sourced statemachine in state ' + node.attrib['id'] + ' do not match!\n' + str(set(eventsNotInCatchedEvents)) + ' (not in catched events)\n' + str(set(events)) + ' (send events) VS \n' + str(set(eventsCatched)) + ' (catched events)')
 
     def handleNormalState(self, node : ET.Element) -> None:
         self.states.append(node.attrib['id'])
@@ -174,7 +177,7 @@ class Statemachine:
                     if 'cond' in each.attrib:
                         ed.cond = each.attrib['cond']
                     if 'event' in each.attrib:
-                        ed.label = reduTransEvnt(each.attrib['event'])
+                        ed.add_event(reduTransEvnt(each.attrib['event']))
                         ed.color = self.detEdgeColor(each.attrib['event'])
                     else:
                         print('Warning: State ' + node.attrib['id'] + ' lacks a event in a transition. Sad.')
@@ -187,12 +190,12 @@ class Statemachine:
                             ed.start = node.attrib['id']
                             if 'cond' in each.attrib:
                                 ed.cond = each.attrib['cond']
-                            ed.label = every.attrib['event']
+                            ed.add_event(every.attrib['event'])
                             self.outGoingEdges.append(ed)
             elif each.tag == 'send':#dead code?
                 ed : Edge = Edge()
                 ed.start = node.attrib['id']
-                ed.label = each.attrib['event']
+                ed.add_event(each.attrib['event'])
                 self.outGoingEdges.append(ed)
 
     def redirectInitialEdges(self) -> None:
@@ -256,7 +259,7 @@ class Statemachine:
                 each.fontcolor = 'blue'
             self.addEdge(each)
 
-    def addEdge(self, edge):
+    def addEdge(self, edge: Edge):
         """Will add an Edge to this Graph.
 
         Args:
@@ -265,7 +268,7 @@ class Statemachine:
         Returns:
             Nothing. But will modify the graph of this statemachine.
         """
-        labelevent= edge.label
+        labelevent: str = edge.get_label()
         if edge.cond:
             labelevent += ' (' + edge.cond +')'
         self.graph.edge(edge.start, edge.target, color=edge.color, label=labelevent , fontcolor=edge.fontcolor)

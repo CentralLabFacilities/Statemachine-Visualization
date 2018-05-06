@@ -1,3 +1,4 @@
+from typing import List
 
 """Data storage classes for the statemachine vizualizer.
 """
@@ -6,11 +7,11 @@ class Node(object):
     """Class to represent Nodes appropriately"""
     def __init__(self, label='', shape='', labelcolor='black', ID=-1, slots=[]):
         super(Node, self).__init__()
-        self.label = label
-        self.shape = shape
-        self.labelcolor = labelcolor
-        self.ID = ID
-        self.slots = slots
+        self.label : str = label
+        self.shape : str = shape
+        self.labelcolor : str = labelcolor
+        self.ID : int = ID
+        self.slots : List[str] = slots
 
     ID = -1
     """int: The ID of the node, to identify it. -1 means the ID has not been set yet. 
@@ -29,21 +30,20 @@ class Node(object):
     """
 
     slots = []
-    """list[str]: The slots this node will use.
+    """List[str]: The slots this node will use.
     """
 
 
 class Edge(object):
     """Class to represent Edge appropriately"""
 
-    def __init__(self, start='', target='', color='black', label='', fontcolor='black', cond=''):
+    def __init__(self, start: str='', target: str='', color: str='black', fontcolor: str='black', cond: str=''):
         """Contructor of the Edge class.
 
         Args:
             start (str, optional): The node from which this edge starts.
             target (str, optional): The node to which this edge leads.
             color (str, optional): The color of the edge.
-            label (str, optional): The writing which will appear near this edge.
             fontcolor (str, optional): The color in which the label will appear.
             cond (str, optional): The condition under which this edge stands.
         """
@@ -51,14 +51,20 @@ class Edge(object):
         self.start : str = start
         self.target : str = target
         self.color : str = color
-        self.label : str = label
+        self.events : List[str] = []
         self.fontcolor : str = fontcolor
         self.cond : str = cond
+
+    def get_label(self) -> str:
+        return ', '.join(self.events)
+
+    def add_event(self, event:str) -> None:
+        self.events.append(event)
 
     def __repr__(self):
         """For printing the Edges humanly readable.
         """
-        return self.start + ', ' + self.target + ', ' + self.label + ',' + self.cond + '\n'
+        return self.start + '; ' + self.target + '; ' + self.get_label() + ';' + self.cond + '\n'
 
     start = ''
     """str: The node from which this edge starts.
@@ -85,7 +91,7 @@ class Edge(object):
     """
 
 def removeDoubles(edges):
-    # type: (list[Edge]) -> list[Edge]
+    # type: (List[Edge]) -> List[Edge]
     """Will remove all doubles in the specified list of edges so that each element will be unique.
     Args:
         edges (list(Edge)): The list of edges of which doubles are to be deleted.
