@@ -148,8 +148,9 @@ class Statemachine:
                     ed : Edge = Edge()
                     ed.start = node.attrib['id']
                     ed.target = propTrans.attrib['target']
-                    ed.add_event(reduTransEvnt(propTrans.attrib['event']))
-                    eventsCatched.append(ed.label)
+                    event : str = reduTransEvnt(propTrans.attrib['event'])
+                    ed.add_event(event)
+                    eventsCatched.append(event)
                     ed.color = 'blue'
                     self.internalEdges.append(ed)
                 else:
@@ -158,8 +159,9 @@ class Statemachine:
                             continue
                         ed : Edge = Edge()
                         ed.start = node.attrib['id']
-                        ed.add_event(send_evnt.attrib['event'])
-                        eventsCatched.append(ed.label)
+                        event : str = send_evnt.attrib['event']
+                        ed.add_event(event)
+                        eventsCatched.append(event)
                         self.outGoingEdges.append(ed)
         eventsNotInCatchedEvents : List[str] = [event for event in events if event not in eventsCatched and '*' not in eventsCatched]
         if len(eventsNotInCatchedEvents) > 0:
