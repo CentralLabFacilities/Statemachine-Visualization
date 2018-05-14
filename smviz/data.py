@@ -51,44 +51,19 @@ class Edge(object):
         self.start : str = start
         self.target : str = target
         self.color : str = color
-        self.events : List[str] = []
+        self.events : List[str, str] = []
         self.fontcolor : str = fontcolor
-        self.cond : str = cond
 
     def get_label(self) -> str:
-        return ', '.join(self.events)
+        return '\\n'.join([': '.join(x) if x[1] else x[0] for x in self.events])
 
-    def add_event(self, event:str) -> None:
-        self.events.append(event)
+    def add_event(self, event:str, condition: str) -> None:
+        self.events.append((event, condition))
 
     def __repr__(self):
         """For printing the Edges humanly readable.
         """
-        return self.start + '; ' + self.target + '; ' + self.get_label() + ';' + self.cond + '\n'
-
-    start = ''
-    """str: The node from which this edge starts.
-    """
-
-    target = ''
-    """str: The node to which this edge leads.
-    """
-
-    color = ''
-    """str: The color of the edge.
-    """
-
-    label = ''
-    """str: The writing which will appear near this edge.
-    """
-
-    fontcolor = ''
-    """str: The color in which the label will appear.
-    """
-
-    cond = ''
-    """str: The condition under which this edge stands.
-    """
+        return self.start + '; ' + self.target + '; ' + self.get_label() + '\n'
 
 def removeDoubles(edges):
     # type: (List[Edge]) -> List[Edge]
