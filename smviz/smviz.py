@@ -152,7 +152,7 @@ class Statemachine:
         events: list(str) = getSendEvents(sourcedTree)
         eventsCatched: list(str) = []
 
-        self.graph.node(node.attrib['id'], style='filled', shape='doublecircle')
+        self.graph.node(node.attrib['id'], style='filled', shape='doubleoctagon')
         self.states.append(node.attrib['id'])
         for propTrans in node:
             if propTrans.tag == 'transition':
