@@ -132,6 +132,8 @@ class Statemachine:
                             break
                 if 'cond' in potential_transition.attrib:
                     outgoing_edge.events[-1] = outgoing_edge.events[-1][0], potential_transition.attrib['cond']
+        parallelmaschine.redirectNonInternalEdges()
+        self.internalEdges.extend(parallelmaschine.outGoingEdges)
 
     def handleCmpState(self, node: ET.Element) -> None:
         compoundmaschine: Statemachine = Statemachine(node, 'cluster_' + node.attrib['id'])
